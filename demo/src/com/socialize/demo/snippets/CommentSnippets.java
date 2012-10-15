@@ -146,8 +146,10 @@ CommentUtils.addComment(this, entity, "This the comment", commentOptions, new Co
 	}
 
 	@Override
-	public void onBeforePost(Activity parent, SocialNetwork socialNetwork, PostData postData) {
+	public boolean onBeforePost(Activity parent, SocialNetwork socialNetwork, PostData postData) {
 		// Called before the post to the given network is made
+		// Return true to prevent the post from occurring
+		return false;
 	}
 
 	@Override
@@ -264,7 +266,7 @@ CommentUtils.getCommentsByEntity(this, entityKey, 0, 10, new CommentListListener
 //end-snippet-6
 }
 
-public void getCommentsByUser() {
+public void getCommentsByUser() throws SocializeException {
 // begin-snippet-5
 User user = UserUtils.getCurrentUser(this);
 
@@ -285,5 +287,23 @@ CommentUtils.getCommentsByUser(this, user, 0, 10, new CommentListListener() {
 //end-snippet-5
 }
 
+public void getCommentsByApplication() {
+// begin-snippet-9
+// Get first 10 comments
+// The "this" argument refers to the current Activity
+CommentUtils.getCommentsByApplication(this, 0, 10, new CommentListListener() {
+	
+	@Override
+	public void onList(ListResult<Comment> result) {
+		// Found comments
+	}
+	
+	@Override
+	public void onError(SocializeException error) {
+		// Handle error
+	}
+});
+//end-snippet-9
+}
 
 }

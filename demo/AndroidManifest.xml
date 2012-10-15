@@ -4,11 +4,12 @@
     android:versionCode="1"
     android:versionName="1.0" >
 
-    <uses-sdk android:minSdkVersion="7" android:targetSdkVersion="10" />
+    <uses-sdk android:minSdkVersion="7" android:targetSdkVersion="16" />
     
     <uses-permission android:name="android.permission.INTERNET"/>
 	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
 	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
+	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
 	
 	<!-- Permissions required for Push Notifications -->
 	<permission android:name="com.socialize.demo.permission.C2D_MESSAGE" android:protectionLevel="signature" />
@@ -29,9 +30,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-        
-        
-        
         
         <!--****************************************************************-->   
         <!--************** STANDARD SOCIALIZE CONFIGURATION ****************-->
@@ -68,6 +66,9 @@
         <!--****************************************************************-->  
         
         <activity android:name=".DemoList"/>
+        <activity android:name=".InitActivity"/>
+        <activity android:name=".implementations.tools.ToolsActivity"/>
+        
         
         <!-- Comment -->
         <activity android:name=".implementations.comment.CommentActivity"/>
@@ -76,6 +77,8 @@
         <activity android:name=".implementations.comment.GetCommentsByEntityActivity"/>
         <activity android:name=".implementations.comment.GetCommentsByUserActivity"/>
         <activity android:name=".implementations.comment.GetCommentsByIDActivity"/>
+        <activity android:name=".implementations.comment.CommentViewEmbeddedActivity"/>
+        
         
         <!-- Share -->
         <activity android:name=".implementations.share.ShareActivity"/>
@@ -88,6 +91,7 @@
         <activity android:name=".implementations.entity.EntityActivity"/>
         <activity android:name=".implementations.entity.AddEntityActivity"/>
         <activity android:name=".implementations.entity.GetEntityByKeyActivity"/>
+        <activity android:name=".implementations.entity.GetPopularEntitiesActivity"/>
         <activity android:name=".implementations.entity.GetAllEntitiesActivity"/>
         
         <!-- View -->
@@ -106,6 +110,11 @@
         <activity android:name=".implementations.actionbar.DefaultActionBarActivity"/>
         <activity android:name=".implementations.actionbar.CustomActionBarActivity"/>
         <activity android:name=".implementations.actionbar.MultiActionBarActivity"/>
+        <activity android:name=".implementations.actionbar.AutumnActionBarActivity"/>
+        <activity android:name=".implementations.actionbar.RedActionBarActivity"/>
+        <activity android:name=".implementations.actionbar.TopActionBarActivity"/>
+        <activity android:name=".implementations.actionbar.WebViewActionBarActivity"/>
+        <activity android:name=".implementations.actionbar.PhotoActionBarActivity"/>
         
         <!-- User Activity -->
         <activity android:name=".implementations.action.ActionActivity"/>
@@ -130,6 +139,7 @@
         <activity android:name=".implementations.facebook.PostToWallActivity"/> 
         <activity android:name=".implementations.facebook.PostPhotoActivity"/> 
         <activity android:name=".implementations.facebook.GetTokenActivity"/> 
+        <activity android:name=".implementations.facebook.GetPermissionsActivity"/> 
         <activity android:name=".implementations.facebook.OpenGraphActivity"/>
         
         <!-- Twitter -->
@@ -141,6 +151,19 @@
             
         <!-- User -->
         <activity android:name=".implementations.user.UserActivity"/> 
+        
+        <!-- Entity Loader -->
+        <activity android:name=".EntityLoaderActivity"/> 
+        
+        <!-- Deep Link Loader -->
+        <activity android:name=".DeepLinkActivity">
+			<intent-filter>
+	            <action android:name="android.intent.action.VIEW" />
+	            <category android:name="android.intent.category.DEFAULT" />
+	            <category android:name="android.intent.category.BROWSABLE" />
+	            <data android:scheme="socialize"/>
+	        </intent-filter>             
+        </activity>
         
         <!--****************************************************************-->   
         <!--************** END SOCIALIZE DEMO CONFIGURATION ****************-->

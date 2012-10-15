@@ -23,15 +23,12 @@ package com.socialize.util;
 
 import java.io.IOException;
 import java.io.InputStream;
-
-import com.socialize.log.SocializeLogger;
-
 import android.app.Activity;
 import android.graphics.Bitmap;
 import android.graphics.Shader;
 import android.graphics.drawable.Drawable;
 import android.util.DisplayMetrics;
-import android.util.Log;
+import com.socialize.log.SocializeLogger;
 
 /**
  * Convenience class for getting drawables from raw images.
@@ -165,7 +162,7 @@ public class Drawables {
 					in.close();
 				}
 				catch (IOException e) {
-					Log.w(SocializeLogger.LOG_TAG, e.getMessage(), e);
+					SocializeLogger.w(e.getMessage(), e);
 				}
 			}
 		}
@@ -208,18 +205,25 @@ public class Drawables {
 	}
 	
 	protected String getPath(String name, int density) {
-		String densityPath = "mdpi";
-
-		if (density == DisplayMetrics.DENSITY_HIGH) {
-			densityPath = "hdpi";
+		String densityPath = null;
+		
+		if (density > DisplayMetrics.DENSITY_LOW) {
+			if (density > DisplayMetrics.DENSITY_MEDIUM) {
+				if (density > DisplayMetrics.DENSITY_HIGH) {
+					densityPath = "xhdpi";
+				}
+				else {
+					densityPath = "hdpi";
+				}
+			}
+			else {
+				densityPath = "mdpi";
+			}
 		}
-		else if (density == DisplayMetrics.DENSITY_LOW) {
+		else {
 			densityPath = "ldpi";
 		}
-		else if (density > DisplayMetrics.DENSITY_HIGH) {
-			densityPath = "xhdpi";
-		}
-		
+
 		int indexOf = name.indexOf('#');
 		
 		if(indexOf >= 0) {

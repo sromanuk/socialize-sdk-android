@@ -28,7 +28,9 @@ import com.socialize.ConfigUtils;
 import com.socialize.Socialize;
 import com.socialize.SocializeService;
 import com.socialize.UserUtils;
+import com.socialize.api.SocializeSession;
 import com.socialize.auth.AuthProviderType;
+import com.socialize.config.SocializeConfig;
 import com.socialize.entity.SocializeAction;
 import com.socialize.networks.PostData;
 import com.socialize.networks.SocialNetwork;
@@ -47,17 +49,27 @@ import com.socialize.ui.profile.UserSettings;
 public abstract class SocializeActionUtilsBase {
 	
 	private ShareHandlers shareHandlers;
+	protected SocializeConfig config;
 	
 	protected void populateActionOptions(Context context, ActionOptions options) {
-		options.setShowAuthDialog(ConfigUtils.getConfig(context).isAuthRequired());
+		if(config == null) {
+			options.setShowAuthDialog(ConfigUtils.getConfig(context).isPromptForAuth());
+		}
+		else {
+			options.setShowAuthDialog(config.isPromptForAuth());
+		}
 	}	
 	
-	protected boolean isDisplayAuthDialog(Context context, ActionOptions options, SocialNetwork...networks) {
+	protected boolean isDisplayAuthDialog(Context context, SocializeSession session, ActionOptions options, SocialNetwork...networks) {
 		boolean authRequired = true;
 		boolean authSupported = false;
 		
 		if(options != null) {
 			authRequired = options.isShowAuthDialog();
+		}
+		
+		if(authRequired) {
+			authRequired = session.getUserSettings().isShowAuthDialog();
 		}
 		
 		if(networks == null || networks.length == 0) {
@@ -85,35 +97,9 @@ public abstract class SocializeActionUtilsBase {
 		return (authRequired && authSupported);
 	}
 	
-	
-	protected boolean isDisplayAuthDialog(Context context) {
-		
-		boolean authRequired = ConfigUtils.getConfig(context).isAuthRequired();
-		boolean authSupported = false;
-		
-		if(authRequired) {
-			SocialNetwork[] all = SocialNetwork.values();
-			for (SocialNetwork network : all) {
-				AuthProviderType type = AuthProviderType.valueOf(network);
-				if(getSocialize().isSupported(type)) {
-					authSupported = true;
-					if(getSocialize().isAuthenticated(type)) {
-						authRequired = false;
-						break;
-					}
-				}
-				
-				if(!authRequired) {
-					break;
-				}
-			}
-		}
-		return (authRequired && authSupported);
-	}	
-	
 	protected boolean isDisplayShareDialog(Context context, ShareableActionOptions options) {
 		
-		if(options == null || options.isShowShareDialog()) {
+		if((options == null || options.isShowShareDialog()) && ConfigUtils.getConfig(context).isPromptForShare()) {
 			
 			boolean fbSupported = FacebookUtils.isAvailable(context);
 			boolean twSupported = TwitterUtils.isAvailable(context);
@@ -165,10 +151,11 @@ public abstract class SocializeActionUtilsBase {
 						}
 
 						@Override
-						public void onBeforePost(Activity parent, SocialNetwork socialNetwork, PostData postData) {
+						public boolean onBeforePost(Activity parent, SocialNetwork socialNetwork, PostData postData) {
 							if(listener != null) {
-								listener.onBeforePost(parent, socialNetwork, postData);
+								return listener.onBeforePost(parent, socialNetwork, postData);
 							}
+							return false;
 						}
 						
 						@Override
@@ -181,6 +168,9 @@ public abstract class SocializeActionUtilsBase {
 				}
 				else {
 					// TODO: Log error!
+					System.err.println("No Handler found for network [" +
+							socialNetwork +
+							"]");
 				}
 			}
 		}
@@ -189,6 +179,8 @@ public abstract class SocializeActionUtilsBase {
 	public void setShareHandlers(ShareHandlers shareHandlers) {
 		this.shareHandlers = shareHandlers;
 	}
-
 	
+	public final void setConfig(SocializeConfig config) {
+		this.config = config;
+	}
 }

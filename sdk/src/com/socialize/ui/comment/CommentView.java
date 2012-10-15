@@ -5,12 +5,10 @@ import android.app.Dialog;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.Menu;
 import android.view.MenuItem;
 import android.view.MenuItem.OnMenuItemClickListener;
 import android.view.View;
-
 import com.socialize.Socialize;
 import com.socialize.android.ioc.IOCContainer;
 import com.socialize.entity.Entity;
@@ -26,6 +24,8 @@ public class CommentView extends EntityView {
 	private Dialog progress;
 	private CommentListView commentListView;
 	private Drawables drawables;
+	private boolean headerDisplayed = true;
+	private Entity entity;
 	
 	public static final String COMMENT_LISTENER = "socialize.comment.listener";
 	
@@ -39,16 +39,21 @@ public class CommentView extends EntityView {
 
 	@Override
 	protected View getView(Bundle bundle, Object...entityKey) {
-		if (entityKey != null) {
+		if (entityKey != null || entity != null) {
 			
 			if(drawables == null) {
 				drawables = container.getBean("drawables");
 			}
 			
-			// TODO: always create?
 			if(commentListView == null) {
-				Entity entity = (Entity) entityKey[0];
-				commentListView = container.getBean("commentList", entity);
+				
+				if(entity == null) {
+					entity = (Entity) entityKey[0];
+				}
+				
+				commentListView = container.getBean("commentList");
+				commentListView.setEntity(entity);
+				commentListView.setHeaderDisplayed(headerDisplayed);
 				ListenerHolder holder = container.getBean("listenerHolder");
 				if(holder != null) {
 					OnCommentViewActionListener onCommentViewActionListener = holder.pop(COMMENT_LISTENER);
@@ -59,17 +64,19 @@ public class CommentView extends EntityView {
 			return commentListView;
 		}
 		else {
-			Log.e(SocializeLogger.LOG_TAG, "No entity url specified for comment view");
+			SocializeLogger.e("No entity url specified for comment view");
 			return null;
 		}
 	}
 	
 	@Override
 	protected void onBeforeSocializeInit() {
-		try {
-			progress = SafeProgressDialog.show(getContext(), "Loading Socialize", "Please wait...");
+		if(!Socialize.getSocialize().isInitialized(getContext()) || !Socialize.getSocialize().isAuthenticated()) {
+			try {
+				progress = SafeProgressDialog.show(getContext(), "Loading Socialize", "Please wait...");
+			}
+			catch (Exception ignore) {}
 		}
-		catch (Exception ignore) {}
 	}
 
 	@Override
@@ -111,6 +118,26 @@ public class CommentView extends EntityView {
 		return (commentListView == null) ? null : commentListView.getCommentEntryViewSlider();
 	}
 	
+	public boolean isHeaderDisplayed() {
+		return headerDisplayed;
+	}
+	
+	public void setHeaderDisplayed(boolean headerDisplayed) {
+		this.headerDisplayed = headerDisplayed;
+		
+		if(commentListView != null) {
+			commentListView.setHeaderDisplayed(headerDisplayed);
+		}
+	}
+	
+	public void setEntity(Entity entity) {
+		this.entity = entity;
+	}
+	
+	public Entity getEntity() {
+		return entity;
+	}
+
 	public boolean onCreateOptionsMenu(final Activity source, Menu menu) {
 		createOptionsMenuItem(source, menu);
 

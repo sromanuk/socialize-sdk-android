@@ -3,6 +3,7 @@ import simplejson
 import random as rand
 import os,sys
 import urllib
+import time
 
 config_file_path='../sample/assets/socialize.properties'
 assets_file_path='../sample/assets/existing-data/'
@@ -22,6 +23,7 @@ def create_android_config(key,secret,url,fb_token):
 	text+= '\nlog.level=WARN'
 	text+= '\nsocialize.register.notification=false'
 	text+= '\nsocialize.notification.enabled=false'
+	text+= '\nsocialize.location.enabled=false'
 	text+= '\nfacebook.app.id=387684787937421'
 	text+= '\nfacebook.token='+fb_token
 	text+= '\ntwitter.token=353351555-8L6E6HOphntfE5oUYDdPllX7x4gaXaWKHuRqqA'
@@ -191,7 +193,13 @@ def main(key,secret,url):
     remove('shares.json')
     remove('likes.json')
     remove('views.json')
-
+    remove('entities.json')
+    remove('entityA.json')
+    remove('entityB.json')
+    remove('entityC.json')
+    remove('commentsA.json')
+    remove('commentsB.json')
+    remove('commentsC.json')
 
 ## Create Entity
     print '#'*20
@@ -219,6 +227,34 @@ def main(key,secret,url):
     likes = [ gen_like_and_view('http://entity1.com') , gen_like_and_view('http://entity2.com')]
     req_url = url+like_url 
     make_request(client, req_url,method='POST', data=likes, outfile='likes.json')
+    
+## Not create 3 entities for the purposes of testing entity sorting
+
+    print '#'*20
+    print '## CREATE ADDITIONAL ENTITIES ##'
+    print '#'*20
+    
+    entityA = [ {'key':'http://entityA.com','name':'A Entity'} ]
+    entityB = [ {'key':'http://entityB.com','name':'B Entity'} ]
+    entityC = [ {'key':'http://entityC.com','name':'C Entity'} ]
+            
+# Sleep between to guarantee creation order
+    req_url = url+entity_url
+    make_request(client, req_url,method='POST', data=entityA, outfile='entityA.json')
+    time.sleep(1)
+    make_request(client, req_url,method='POST', data=entityB, outfile='entityB.json')
+    time.sleep(1)
+    make_request(client, req_url,method='POST', data=entityC, outfile='entityC.json')
+    
+    req_url = url+comment_url
+    comments = [ gen_comment('http://entityA.com', i) for i in range(9)]
+    make_request(client, req_url,method='POST', data=comments, outfile='commentsA.json')
+    
+    comments = [ gen_comment('http://entityB.com', i) for i in range(6)]
+    make_request(client, req_url,method='POST', data=comments, outfile='commentsB.json')
+    
+    comments = [ gen_comment('http://entityC.com', i) for i in range(3)]
+    make_request(client, req_url,method='POST', data=comments, outfile='commentsC.json')
 
 ## Create Share for both entities
 

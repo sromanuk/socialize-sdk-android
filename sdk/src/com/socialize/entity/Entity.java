@@ -45,6 +45,8 @@ public class Entity extends SocializeObject implements Serializable {
 	private String likeTextString;
 	private String linkString;
 	private String sharingImageFilePath;
+
+	private String type;
 	
 	public Entity() {
 		super();
@@ -111,6 +113,14 @@ public class Entity extends SocializeObject implements Serializable {
 		this.entityStats = stats;
 	}
 	
+	public String getType() {
+		return type;
+	}
+	
+	public void setType(String type) {
+		this.type = type;
+	}
+
 	public static Entity newInstance(String key, String name) {
 		Entity e = new Entity(key, name);
 		return e;

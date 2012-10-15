@@ -25,10 +25,9 @@ import android.app.PendingIntent;
 import android.content.Context;
 import android.content.Intent;
 import android.os.AsyncTask;
-import android.util.Log;
-
 import com.socialize.Socialize;
 import com.socialize.android.ioc.IBeanFactory;
+import com.socialize.api.DeviceRegistrationListener;
 import com.socialize.api.DeviceRegistrationSystem;
 import com.socialize.api.SocializeSession;
 import com.socialize.api.action.user.UserSystem;
@@ -153,25 +152,31 @@ public class SocializeNotificationRegistrationSystem implements NotificationRegi
 		}
 	}
 	
-	protected void doRegistrationSocialize(Context context, SocializeSession session, String registrationId) {
-		try {
-			// Record the registration with Socialize
-			DeviceRegistration registration = deviceRegistrationFactory.getBean();
-			registration.setRegistrationId(registrationId);
-			
-			deviceRegistrationSystem.registerDevice(session, registration);
-			
-			notificationRegistrationState.setC2DMRegistrationId(registrationId);
-			notificationRegistrationState.setRegisteredSocialize(session.getUser());
-			notificationRegistrationState.save(context);
-			
-			if(logger != null && logger.isInfoEnabled()) {
-				logger.info("Registration with Socialize for C2DM successful.");
+	protected void doRegistrationSocialize(final Context context, final SocializeSession session, final String registrationId) {
+		
+		// Record the registration with Socialize
+		DeviceRegistration registration = deviceRegistrationFactory.getBean();
+		registration.setRegistrationId(registrationId);
+		
+		deviceRegistrationSystem.registerDevice(session, registration,  new DeviceRegistrationListener() {
+			@Override
+			public void onError(SocializeException error) {
+				if(logger != null) {
+					logger.error("Error registering device with Socialize.  Will retry on next start", error);
+				}
 			}
-		} 
-		catch (SocializeException e) {
-			logError(e);
-		}
+			
+			@Override
+			public void onSuccess() {
+				notificationRegistrationState.setC2DMRegistrationId(registrationId);
+				notificationRegistrationState.setRegisteredSocialize(session.getUser());
+				notificationRegistrationState.save(context);
+				
+				if(logger != null && logger.isInfoEnabled()) {
+					logger.info("Registration with Socialize for C2DM successful.");
+				}
+			}
+		});
 	}
 	
 	protected void logError(Exception e) {
@@ -179,7 +184,7 @@ public class SocializeNotificationRegistrationSystem implements NotificationRegi
 			logger.error("Error during device registration", e);
 		}
 		else {
-			Log.e(SocializeLogger.LOG_TAG, e.getMessage(), e);
+			SocializeLogger.e(e.getMessage(), e);
 		}
 	}
 	

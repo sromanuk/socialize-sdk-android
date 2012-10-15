@@ -25,7 +25,6 @@ import android.app.Activity;
 import android.app.ProgressDialog;
 import android.content.Context;
 import android.graphics.drawable.Drawable;
-import android.util.Log;
 import android.widget.ImageView;
 import android.widget.LinearLayout;
 import com.socialize.CommentUtils;
@@ -60,6 +59,7 @@ public class ActionDetailLayoutView extends BaseView {
 	private Drawable defaultProfilePicture;
 	
 	private SocializeAction currentAction;
+	private User currentUser;
 	private int count = 0;
 	
 	// Injected
@@ -134,7 +134,8 @@ public class ActionDetailLayoutView extends BaseView {
 	}
 	
 	public void doGetAction() {
-		if(!StringUtils.isEmpty(actionId)) {
+		if(!StringUtils.isEmpty(actionId) && (currentAction == null || !currentAction.getId().equals(actionId))) {
+			
 			int id = Integer.parseInt(actionId);
 			
 			// TODO: this should be able to process generic actions.
@@ -164,7 +165,7 @@ public class ActionDetailLayoutView extends BaseView {
 	}
 	
 	protected void doGetUserProfile(SocializeAction action) {
-		if(action.getUser() != null) {
+		if(action != null && action.getUser() != null) {
 			doGetUserProfile(action.getUser().getId(), action);
 		}
 		else if(!StringUtils.isEmpty(userId)) {
@@ -174,13 +175,13 @@ public class ActionDetailLayoutView extends BaseView {
 	
 	protected void doGetUserProfile(final long userId, final SocializeAction action) {
 		
-		if(userId >= 0) {
-			
+		if(userId >= 0 && (currentUser == null || !currentUser.getId().equals(userId))) {
 			UserUtils.getUser(getActivity(), userId, new UserGetListener() {
 				
 				@Override
 				public void onGet(User user) {
 					// Set the user details into the view elements
+					currentUser = user;
 					setUserDetails(user, action);
 					countdown();
 				}
@@ -208,7 +209,7 @@ public class ActionDetailLayoutView extends BaseView {
 			imageLoader.loadImageByUrl(profilePicData, new ImageLoadListener() {
 				@Override
 				public void onImageLoadFail(ImageLoadRequest request, Exception error) {
-					Log.e(SocializeLogger.LOG_TAG, error.getMessage(), error);
+					SocializeLogger.e(error.getMessage(), error);
 					userIcon.post(new Runnable() {
 						public void run() {
 							userIcon.setImageDrawable(defaultProfilePicture);
@@ -270,6 +271,7 @@ public class ActionDetailLayoutView extends BaseView {
 	public void onProfileUpdate() {
 		dialog = progressDialogFactory.show(getContext(), "Loading", "Please wait...");
 		count = 1;
+		currentUser = null;
 		doGetUserProfile(currentAction);
 	}
 }

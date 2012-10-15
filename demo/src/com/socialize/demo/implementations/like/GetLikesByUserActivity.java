@@ -42,18 +42,23 @@ public class GetLikesByUserActivity extends SDKDemoActivity {
 	@Override
 	public void executeDemo(String text) {
 		
-		LikeUtils.getLikesByUser(this, UserUtils.getCurrentUser(this), 0, 50, new LikeListListener() {
-			
-			@Override
-			public void onList(List<Like> items, int totalSize) {
-				handleSocializeResult(items);
-			}
-			
-			@Override
-			public void onError(SocializeException error) {
-				handleError(GetLikesByUserActivity.this, error);
-			}
-		});
+		try {
+			LikeUtils.getLikesByUser(this, UserUtils.getCurrentUser(this), 0, PAGE_SIZE, new LikeListListener() {
+				
+				@Override
+				public void onList(List<Like> items, int totalSize) {
+					handleSocializeResult(items);
+				}
+				
+				@Override
+				public void onError(SocializeException error) {
+					handleError(GetLikesByUserActivity.this, error);
+				}
+			});
+		}
+		catch (SocializeException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -66,6 +71,6 @@ public class GetLikesByUserActivity extends SDKDemoActivity {
 	 */
 	@Override
 	public String getButtonText() {
-		return "List 50 Likes for Current User";
+		return "List " + PAGE_SIZE + " Likes for Current User";
 	}
 }

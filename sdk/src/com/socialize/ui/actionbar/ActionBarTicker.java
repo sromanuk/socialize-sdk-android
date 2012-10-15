@@ -24,13 +24,13 @@ package com.socialize.ui.actionbar;
 import java.util.ArrayList;
 import java.util.List;
 import android.content.Context;
-import android.graphics.drawable.Drawable;
+import android.graphics.Color;
+import android.graphics.drawable.ColorDrawable;
 import android.view.Gravity;
 import android.view.View;
 import android.widget.LinearLayout;
 import com.socialize.ui.animation.RotatingFadeViewAnimator;
 import com.socialize.util.DisplayUtils;
-import com.socialize.util.Drawables;
 
 /**
  * The ticker shows a rolling display of stats for an entity.
@@ -38,15 +38,22 @@ import com.socialize.util.Drawables;
  *
  */
 public class ActionBarTicker extends LinearLayout {
+	
+	public static final int DEFAULT_BACKGROUND_COLOR = Color.parseColor("#222222");
 
 	private List<View> views;
 	private RotatingFadeViewAnimator rotator;
 	private DisplayUtils displayUtils;
-	private Drawables drawables;
 	private boolean initialized = false;
+	private int backgroundColor = 0;
 	
 	public ActionBarTicker(Context context) {
 		super(context);
+	}
+	
+	public ActionBarTicker(Context context, int backgroundColor) {
+		super(context);
+		this.backgroundColor = backgroundColor;
 	}
 	
 	public void init(int width, float weight) {
@@ -62,7 +69,7 @@ public class ActionBarTicker extends LinearLayout {
 			
 			setLayoutParams(masterParams);
 			
-			Drawable viewBg = drawables.getDrawable("action_bar_button.png", true, false, true);
+			ColorDrawable viewBg = new ColorDrawable((backgroundColor == 0) ? DEFAULT_BACKGROUND_COLOR : backgroundColor);
 			
 			setBackgroundDrawable(viewBg);
 			
@@ -94,6 +101,7 @@ public class ActionBarTicker extends LinearLayout {
 		if(rotator != null) {
 			rotator.skipToNext();
 		}
+		invalidate();
 	}
 	
 	public void stopTicker() {
@@ -117,9 +125,5 @@ public class ActionBarTicker extends LinearLayout {
 
 	public void setDisplayUtils(DisplayUtils deviceUtils) {
 		this.displayUtils = deviceUtils;
-	}
-
-	public void setDrawables(Drawables drawables) {
-		this.drawables = drawables;
 	}
 }

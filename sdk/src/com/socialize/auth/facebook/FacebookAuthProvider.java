@@ -23,14 +23,17 @@ package com.socialize.auth.facebook;
 
 import android.content.Context;
 import android.content.Intent;
-import android.util.Log;
 import com.socialize.auth.AuthProvider;
+import com.socialize.auth.AuthProviderInfo;
+import com.socialize.auth.AuthProviderInfoBuilder;
 import com.socialize.auth.AuthProviderResponse;
+import com.socialize.auth.AuthProviderType;
 import com.socialize.error.SocializeException;
 import com.socialize.facebook.Facebook;
 import com.socialize.listener.AuthProviderListener;
 import com.socialize.listener.ListenerHolder;
 import com.socialize.log.SocializeLogger;
+import com.socialize.networks.facebook.FacebookUtilsProxy;
 
 /**
  * @author Jason Polites
@@ -42,6 +45,8 @@ public class FacebookAuthProvider implements AuthProvider<FacebookAuthProviderIn
 	private ListenerHolder holder; // This is a singleton
 	private SocializeLogger logger;
 	private FacebookSessionStore facebookSessionStore;
+	private FacebookUtilsProxy facebookUtils;
+	private AuthProviderInfoBuilder authProviderInfoBuilder;
 	
 	public FacebookAuthProvider() {
 		super();
@@ -52,6 +57,16 @@ public class FacebookAuthProvider implements AuthProvider<FacebookAuthProviderIn
 		this.holder = holder;
 	}
 	
+	@Override
+	public boolean validate(FacebookAuthProviderInfo info) {
+		if(authProviderInfoBuilder != null) {
+			AuthProviderInfo expected = authProviderInfoBuilder.getFactory(AuthProviderType.FACEBOOK).getInstance(FacebookService.DEFAULT_PERMISSIONS);
+			return info.matches(expected);
+		}
+		// Default to true
+		return true;
+	}
+
 	@Override
 	public void authenticate(FacebookAuthProviderInfo info, final AuthProviderListener listener) {
 
@@ -96,17 +111,19 @@ public class FacebookAuthProvider implements AuthProvider<FacebookAuthProviderIn
 
 	@Override
 	public void clearCache(Context context, FacebookAuthProviderInfo info) {
-		Facebook mFacebook = getFacebook(info.getAppId());
+		Facebook mFacebook = getFacebook(context);
 		
 		try {
-			mFacebook.logout(context);
+			if(mFacebook != null) {
+				mFacebook.logout(context);
+			}
 		}
 		catch (Exception e) {
 			if(logger != null) {
 				logger.error("Failed to log out of Facebook", e);
 			}
 			else {
-				Log.e(SocializeLogger.LOG_TAG, "Failed to log out of Facebook", e);
+				SocializeLogger.e("Failed to log out of Facebook", e);
 			}
 		}
 		finally {
@@ -116,8 +133,12 @@ public class FacebookAuthProvider implements AuthProvider<FacebookAuthProviderIn
 		}
 	}
 	
-	protected Facebook getFacebook(String appId) {
-		return new Facebook(appId);
+	protected Facebook getFacebook(Context context) {
+		return facebookUtils.getFacebook(context);
+	}
+	
+	public void setFacebookUtils(FacebookUtilsProxy facebookUtils) {
+		this.facebookUtils = facebookUtils;
 	}
 
 	public SocializeLogger getLogger() {
@@ -130,5 +151,9 @@ public class FacebookAuthProvider implements AuthProvider<FacebookAuthProviderIn
 
 	public void setFacebookSessionStore(FacebookSessionStore facebookSessionStore) {
 		this.facebookSessionStore = facebookSessionStore;
+	}
+
+	public void setAuthProviderInfoBuilder(AuthProviderInfoBuilder authProviderInfoBuilder) {
+		this.authProviderInfoBuilder = authProviderInfoBuilder;
 	}
 }

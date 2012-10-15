@@ -17,8 +17,10 @@
 	
 	<bean id="logger" class="com.socialize.log.SocializeLogger">
 		<init-method name="init">
+			<arg type="context"/>
 			<arg ref="config"/>
 		</init-method>
+		<destroy-method name="destroy"/>
 	</bean>
 	
 	<bean id="deviceUtils" class="com.socialize.util.DeviceUtils">
@@ -71,6 +73,7 @@
 	<bean id="locationProvider" class="com.socialize.location.DefaultLocationProvider">
 		<property name="appUtils" ref="appUtils"/>
 		<property name="logger" ref="logger"/>
+		<property name="config" ref="config"/>
 		<property name="locationManager" ref="locationManager"/>
 		<property name="locationListenerFactory" ref="locationListenerFactory"/>
 		
@@ -382,8 +385,14 @@
 		<property name="logger" ref="logger"/>
 	</bean>
 	
+	<bean id="googlePlusShareHandler" class="com.socialize.share.GooglePlusShareHandler">
+		<property name="shareMessageBuilder" ref="shareMessageBuilder"/>
+		<property name="logger" ref="logger"/>
+	</bean>
+
 	<bean id="twitterShareHandler" class="com.socialize.share.TwitterShareHandler">
 		<property name="twitterSharer" ref="twitterSharer"/>
+		<property name="logger" ref="logger"/>
 	</bean>
 	
 	<bean id="otherShareHandler" class="com.socialize.share.OtherShareHandler" extends="emailShareHandler"/>
@@ -398,10 +407,14 @@
 				<entry>
 					<key value="SMS"/>
 					<value ref="smsShareHandler"/>
-				</entry>				
+				</entry>
 				<entry>
 					<key value="FACEBOOK"/>
 					<value ref="facebookShareHandler"/>
+				</entry>
+				<entry>
+					<key value="GOOGLE_PLUS"/>
+					<value ref="googlePlusShareHandler"/>
 				</entry>
 				<entry>
 					<key value="TWITTER"/>
@@ -547,6 +560,8 @@
 	<bean id="facebookProvider" class="com.socialize.auth.facebook.FacebookAuthProvider">
 		<property name="logger" ref="logger"/>
 		<property name="facebookSessionStore" ref="facebookSessionStore"/>
+		<property name="facebookUtils" ref="facebookUtils"/>
+		<property name="authProviderInfoBuilder" ref="authProviderInfoBuilder"/>
 		<init-method name="init">
 			<arg type="context"/>
 			<arg ref="listenerHolder"/>
@@ -557,6 +572,15 @@
 		id="facebook" 
 		class="com.socialize.facebook.Facebook"
 		singleton="false">
+	</bean>
+	
+	<bean id="facebookUtils" class="com.socialize.networks.facebook.FacebookUtilsImpl">
+		<property name="userSystem" ref="userSystem"/>
+		<property name="facebookWallPoster" ref="facebookWallPoster"/>
+		<property name="facebookAuthProvider" ref="facebookProvider"/>
+		<property name="imageUtils" ref="imageUtils"/>
+		<property name="logger" ref="logger"/>
+		<property name="config" ref="config"/>
 	</bean>
 	
 	<bean 
@@ -575,7 +599,9 @@
 		id="facebookWallPoster" 
 		class="com.socialize.networks.facebook.DefaultFacebookWallPoster">
 		<property name="logger" ref="logger"/>
+		<property name="config" ref="config"/>
 		<property name="imageUtils" ref="imageUtils"/>
+		<property name="facebookUtils" ref="facebookUtils"/>
 		<property name="facebookRunnerFactory" ref="facebookRunnerFactory"/>
 	</bean>	
 	
@@ -602,12 +628,14 @@
 		id="twitterSharer" 
 		class="com.socialize.networks.twitter.TwitterSharer"
 		extends="socialNetworkSharer">
+		<property name="twitterUtils" ref="twitterUtils"/>
 	</bean>		
 	
 	<bean 
 		id="twitterWebViewClient" 
 		class="com.socialize.auth.twitter.TwitterWebViewClient"
 		singleton="false">
+		<constructor-arg type="context"/>
 	</bean>		
 	
 	<factory id="twitterWebViewClientFactory" makes="twitterWebViewClient"/>		
@@ -643,10 +671,19 @@
 
 	<bean id="twitterProvider" class="com.socialize.auth.twitter.TwitterAuthProvider">
 		<property name="twitterAuthUtils" ref="twitterAuthUtils"/>
+		<property name="authProviderInfoBuilder" ref="authProviderInfoBuilder"/>
 		<init-method name="init">
 			<arg type="context"/>
 		</init-method>
 	</bean>
+	
+	<bean id="twitterUtils" class="com.socialize.networks.twitter.TwitterUtilsImpl">
+		<property name="userSystem" ref="userSystem"/>
+		<property name="config" ref="config"/>
+		<property name="httpRequestProvider" ref="httpRequestProvider"/>
+		<property name="requestSigner" ref="oauthSigner"/>
+		<property name="imageUtils" ref="imageUtils"/>
+	</bean>		
 
 <!-- End Twitter -->
 	

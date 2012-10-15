@@ -26,11 +26,13 @@ import android.content.Intent;
 import com.google.android.testing.mocking.AndroidMock;
 import com.google.android.testing.mocking.UsesMocks;
 import com.socialize.Socialize;
+import com.socialize.api.action.comment.SocializeCommentUtils;
+import com.socialize.api.action.user.SocializeUserUtils;
 import com.socialize.entity.Comment;
 import com.socialize.entity.Entity;
 import com.socialize.entity.SocializeAction;
 import com.socialize.entity.User;
-import com.socialize.test.PublicSocialize;
+import com.socialize.test.SocializeActivityTest;
 import com.socialize.ui.action.ActionDetailActivity;
 import com.socialize.ui.comment.CommentActivity;
 import com.socialize.ui.comment.OnCommentViewActionListener;
@@ -40,12 +42,12 @@ import com.socialize.ui.profile.ProfileActivity;
  * @author Jason Polites
  *
  */
-public class SocializeUIInstanceTests2 extends SocializeUIActivityTest {
+public class SocializeUIInstanceTests2 extends SocializeActivityTest {
 	public void testShowCommentViewCallFlow() {
 		final String url = "foobar";
 		final Entity entity = Entity.newInstance(url, null);
 		
-		PublicSocialize socialize = new PublicSocialize() {
+		SocializeCommentUtils socialize = new SocializeCommentUtils() {
 			@Override
 			public void showCommentView(Activity context, Entity entity, OnCommentViewActionListener listener) {
 				addResult(entity);
@@ -78,7 +80,7 @@ public class SocializeUIInstanceTests2 extends SocializeUIActivityTest {
 			}
 		};
 		
-		PublicSocialize socialize = new PublicSocialize() {
+		SocializeCommentUtils socialize = new SocializeCommentUtils() {
 
 			@Override
 			public Intent newIntent(Activity context, Class<?> cls) {
@@ -86,8 +88,6 @@ public class SocializeUIInstanceTests2 extends SocializeUIActivityTest {
 				return intent;
 			}
 		};
-		
-		socialize.init(getContext());
 		
 		AndroidMock.replay(intent);
 		
@@ -123,7 +123,7 @@ public class SocializeUIInstanceTests2 extends SocializeUIActivityTest {
 			}
 		};
 		
-		PublicSocialize socialize = new PublicSocialize() {
+		SocializeUserUtils socialize = new SocializeUserUtils() {
 
 			@Override
 			public Intent newIntent(Activity context, Class<?> cls) {
@@ -134,7 +134,7 @@ public class SocializeUIInstanceTests2 extends SocializeUIActivityTest {
 		
 		AndroidMock.replay(intent);
 		
-		socialize.showUserProfileView(context, userId);
+		socialize.showUserSettingsView(context, userId);
 		
 		AndroidMock.verify(intent);
 		
@@ -163,7 +163,7 @@ public class SocializeUIInstanceTests2 extends SocializeUIActivityTest {
 			}
 		};
 		
-		PublicSocialize socialize = new PublicSocialize() {
+		SocializeUserUtils socialize = new SocializeUserUtils() {
 
 			@Override
 			public Intent newIntent(Activity context, Class<?> cls) {
@@ -174,7 +174,7 @@ public class SocializeUIInstanceTests2 extends SocializeUIActivityTest {
 		
 		AndroidMock.replay(intent);
 		
-		socialize.showUserProfileViewForResult(context, userId, requestCode);
+		socialize.showUserSettingsViewForResult(context, userId, requestCode);
 		
 		AndroidMock.verify(intent);		
 		
@@ -213,7 +213,7 @@ public class SocializeUIInstanceTests2 extends SocializeUIActivityTest {
 			}
 		};
 		
-		PublicSocialize socialize = new PublicSocialize() {
+		SocializeUserUtils socialize = new SocializeUserUtils() {
 
 			@Override
 			public Intent newIntent(Activity context, Class<?> cls) {
@@ -224,7 +224,7 @@ public class SocializeUIInstanceTests2 extends SocializeUIActivityTest {
 		
 		AndroidMock.replay(intent);
 		
-		socialize.showActionDetailView(context, user, action);
+		socialize.showUserProfileView(context, user, action);
 		
 		AndroidMock.verify(intent);		
 		

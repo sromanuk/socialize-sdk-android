@@ -26,10 +26,8 @@ import java.util.Map;
 import java.util.Map.Entry;
 import java.util.Set;
 import java.util.TreeMap;
-import com.socialize.log.SocializeLogger;
-
 import android.graphics.Color;
-import android.util.Log;
+import com.socialize.log.SocializeLogger;
 
 /**
  * @author Jason Polites
@@ -39,6 +37,10 @@ public class Colors {
 	public static final String TITLE = "TITLE";
 	public static final String BODY = "BODY";
 	public static final String HEADER = "HEADER";
+	
+	public static final String COMMENT_TITLE = "COMMENT_TITLE";
+	public static final String COMMENT_BODY = "COMMENT_BODY";
+	
 	public static final String BUTTON_BOTTOM = "BUTTON_BOTTOM";
 	public static final String SOCIALIZE_BLUE = "SOCIALIZE_BLUE";
 	
@@ -103,7 +105,7 @@ public class Colors {
 					colors.put(entry.getKey(), color);
 				}
 				catch (Exception e) {
-					Log.e(SocializeLogger.LOG_TAG, e.getMessage(), e);
+					SocializeLogger.e(e.getMessage(), e);
 				}
 			}
 		}

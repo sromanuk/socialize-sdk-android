@@ -3,9 +3,11 @@ package com.socialize.test.ui.util;
 import static junit.framework.Assert.assertEquals;
 import static junit.framework.Assert.assertNotNull;
 import java.io.BufferedReader;
+import java.io.ByteArrayOutputStream;
 import java.io.IOException;
 import java.io.InputStream;
 import java.io.InputStreamReader;
+import java.io.PrintWriter;
 import java.util.ArrayList;
 import java.util.Collection;
 import java.util.HashMap;
@@ -24,6 +26,7 @@ import android.app.Instrumentation;
 import android.app.Instrumentation.ActivityMonitor;
 import android.content.Context;
 import android.content.Intent;
+import android.content.SharedPreferences;
 import android.content.pm.PackageManager;
 import android.content.pm.ResolveInfo;
 import android.test.ActivityInstrumentationTestCase2;
@@ -33,7 +36,11 @@ import android.widget.Button;
 import android.widget.TextView;
 import com.socialize.Socialize;
 import com.socialize.SocializeAccess;
+import com.socialize.concurrent.AsyncTaskManager;
 import com.socialize.ioc.SocializeIOC;
+import com.socialize.networks.facebook.FacebookAccess;
+import com.socialize.networks.twitter.TwitterAccess;
+import com.socialize.test.SocializeManagedActivityTest;
 import com.socialize.test.ui.ResultHolder;
 import com.socialize.ui.dialog.DialogRegister;
 import com.socialize.ui.view.CustomCheckbox;
@@ -44,7 +51,7 @@ public class TestUtils {
 	static ResultHolder holder;
 	static ActivityMonitor monitor;
 	static Instrumentation instrumentation;
-	static ActivityInstrumentationTestCase2<?> testCase;
+	static SocializeManagedActivityTest<?> testCase;
 	static Map<String, JSONObject> jsons = new HashMap<String, JSONObject>();
 	
 	private static String fb_token = null;
@@ -137,26 +144,30 @@ public class TestUtils {
 		holder.clear();
 	}
 	
-	public static void setUp(ActivityInstrumentationTestCase2<?> test)  {
-		try {
-			TestUtils.waitForIdle(test, 5000);
-		}
-		catch (InterruptedException e) {
-			ActivityInstrumentationTestCase2.fail();
-		}
+	public static void setUp(SocializeManagedActivityTest<?> test)  {
+
+		AsyncTaskManager.setManaged(true);
 		
 		testCase = test;
 		holder = new ResultHolder();
 		holder.setUp();
 		instrumentation = testCase.getInstrumentation();
-		Socialize.getSocialize().destroy(true);
-		SocializeAccess.clearBeanOverrides();
-		SocializeAccess.revertProxies();
-		SocializeIOC.clearStubs();
 	}
 	
-	public static void tearDown() {
-		holder.clear();
+	public static void tearDown(SocializeManagedActivityTest<?> test) {
+
+		Socialize.getSocialize().destroy(true);
+		
+		SocializeAccess.clearBeanOverrides();
+		SocializeIOC.clearStubs();
+		SocializeAccess.revertProxies();
+		TwitterAccess.revertTwitterUtilsProxy();
+		FacebookAccess.revertFacebookUtilsProxy();
+		
+		if(holder != null) {
+			holder.clear();
+			holder = null;
+		}
 		
 		if(monitor != null) {
 			Activity lastActivity = monitor.getLastActivity();
@@ -164,6 +175,13 @@ public class TestUtils {
 				lastActivity.finish();
 			}
 			instrumentation.removeMonitor(monitor);
+		}
+		
+		Activity activity = getActivity(test);
+		
+		if(activity != null) {
+			SharedPreferences prefs = activity.getSharedPreferences("SocializeSession", Context.MODE_PRIVATE);
+			prefs.edit().clear().commit();					
 		}
 		
 		monitor = null;
@@ -207,7 +225,7 @@ public class TestUtils {
 		}
 	}
 	
-	public static final void sleep(int milliseconds) {
+	public static final void sleep(long milliseconds) {
 		try {
 			Thread.sleep(milliseconds);
 		}
@@ -266,16 +284,42 @@ public class TestUtils {
 			Collection<Dialog> dialogs = dr.getDialogs();
 			
 			if(dialogs != null) {
+				
+				long start = System.currentTimeMillis();;
+				long consumed = 0;
+				long waitForDialogsNum = timeoutMs / 10;
+				
+				while(dialogs.size() == 0) {
+					sleep(waitForDialogsNum);
+					consumed+=waitForDialogsNum;
+					
+					if(consumed >= timeoutMs) {
+						return null;
+					}
+				}
+				
 				for (Dialog dialog : dialogs) {
-					V view = findView(dialog.getWindow().getDecorView(), viewClass, timeoutMs);
+					
+					V view = findView(dialog.getWindow().getDecorView(), viewClass, timeoutMs-consumed);
+					
 					if(view != null) {
 						return view;
 					}
+					
+					consumed += (System.currentTimeMillis() - start);
 				}
 			}
 		}
 		return null;
 	}	
+	
+	public static Button findButtonInDialog(Dialog dialog, String text, long timeoutMs) {
+		return findViewWithText(dialog.getWindow().getDecorView(), Button.class, text, timeoutMs);
+	}	
+	
+	public static <V extends View> V findViewInDialog(Dialog dialog, Class<V> viewClass, long timeoutMs) {
+		return findView(dialog.getWindow().getDecorView(), viewClass, timeoutMs);
+	}		
 	
 	public static <V extends View> V findView(View view, Class<V> viewClass, long timeoutMs) {
 		if(view instanceof ViewGroup) {
@@ -618,6 +662,11 @@ public class TestUtils {
 		setupSocializeOverrides(mockFacebook, mockSocialize, (String[])null);
 	}
 	
+	
+	public static void setupSocializeProxies() {
+		SocializeAccess.setBeanOverrides("socialize_proxy_beans.xml");
+	}
+	
 	public static void setupSocializeOverrides(boolean mockFacebook, boolean mockSocialize, String...others) {
 		
 		List<String> configs = new ArrayList<String>();
@@ -710,6 +759,46 @@ public class TestUtils {
 		return json;
 	}
 	
+	public static <T extends Activity> T getActivity(final SocializeManagedActivityTest<T> test) {
+		T activity = null;
+		
+		final CountDownLatch latch = new CountDownLatch(1);
+		final Set<T> holder = new HashSet<T>();
+		
+		new Thread(new Runnable() {
+			@Override
+			public void run() {
+				try {
+					T activity = test.getActivity();
+					holder.add(activity);
+				}
+				catch (Exception e) {
+					e.printStackTrace();
+				}
+				finally {
+					latch.countDown();
+				}
+			}
+		}).start();
+		
+		try {
+			if(!latch.await(20, TimeUnit.SECONDS)) {
+				ActivityInstrumentationTestCase2.fail("Timeout waiting for activity to start");
+			}
+			else if(holder.size() == 0) {
+				ActivityInstrumentationTestCase2.fail("Failed waiting for activity to start");
+			}
+			else {
+				activity = holder.iterator().next();
+			}
+		}
+		catch (InterruptedException e) {
+			e.printStackTrace();
+			ActivityInstrumentationTestCase2.fail("Error waiting for activity to start");
+		}
+		
+		return activity;
+	}
 	
 	public static Class<?> getActivityForIntent(Context context, Intent intent) throws ClassNotFoundException {
 		PackageManager packageManager = context.getPackageManager();
@@ -730,7 +819,7 @@ public class TestUtils {
 		
 	}
 	
-	public static boolean waitForIdle(final ActivityInstrumentationTestCase2<?> test, long timeout) throws InterruptedException {
+	public static boolean waitForIdle(final SocializeManagedActivityTest<?> test, long timeout) throws InterruptedException {
 		final CountDownLatch latch = new CountDownLatch(1);
 		test.getInstrumentation().waitForIdle(new Runnable() {
 			@Override
@@ -749,5 +838,17 @@ public class TestUtils {
 	 */
 	public static List<Object> getAllResults() {
 		return holder.getAllResults();
+	}
+	
+	
+	public static String stackTraceToString(Exception e) {
+		if(e != null) {
+			ByteArrayOutputStream bout = new ByteArrayOutputStream();
+			PrintWriter pw = new PrintWriter(bout);
+			e.printStackTrace(pw);
+			pw.flush();
+			return new String(bout.toByteArray());
+		}
+		return "null";
 	}
 }

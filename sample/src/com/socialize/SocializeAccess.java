@@ -3,24 +3,26 @@ package com.socialize;
 import android.content.Context;
 import com.socialize.android.ioc.IOCContainer;
 import com.socialize.android.ioc.ProxyObject;
+import com.socialize.api.SocializeSession;
 import com.socialize.api.action.comment.CommentUtilsProxy;
 import com.socialize.api.action.entity.EntityUtilsProxy;
 import com.socialize.api.action.like.LikeUtilsProxy;
 import com.socialize.api.action.share.ShareUtilsProxy;
 import com.socialize.api.action.user.UserUtilsProxy;
 import com.socialize.api.action.view.ViewUtilsProxy;
+import com.socialize.auth.AuthProviders;
 import com.socialize.config.ConfigUtilsProxy;
 import com.socialize.listener.SocializeInitListener;
 
 public class SocializeAccess {
 	
-	private static CommentUtilsProxy originalCommentUtilsProxy = CommentUtils.proxy;
-	private static LikeUtilsProxy originalLikeUtilsProxy = LikeUtils.proxy;
-	private static ShareUtilsProxy originalShareUtilsProxy = ShareUtils.proxy;
-	private static ViewUtilsProxy originalViewUtilsProxy = ViewUtils.proxy;
-	private static UserUtilsProxy originalUserUtilsProxy = UserUtils.proxy;
-	private static ConfigUtilsProxy originalConfigUtilsProxy = ConfigUtils.proxy;
-	private static EntityUtilsProxy originalEntityUtilsProxy = EntityUtils.proxy;
+	private static final CommentUtilsProxy originalCommentUtilsProxy = CommentUtils.proxy;
+	private static final LikeUtilsProxy originalLikeUtilsProxy = LikeUtils.proxy;
+	private static final ShareUtilsProxy originalShareUtilsProxy = ShareUtils.proxy;
+	private static final ViewUtilsProxy originalViewUtilsProxy = ViewUtils.proxy;
+	private static final UserUtilsProxy originalUserUtilsProxy = UserUtils.proxy;
+	private static final ConfigUtilsProxy originalConfigUtilsProxy = ConfigUtils.proxy;
+	private static final EntityUtilsProxy originalEntityUtilsProxy = EntityUtils.proxy;
 	
 	public static <T extends Object> T getBean(String beanName, Object...args) {
 		return getBean(Socialize.getSocialize(), beanName, args);
@@ -70,12 +72,16 @@ public class SocializeAccess {
 		Socialize.getSocialize().getSystem().setSystemInitListener(listener);
 	}
 	
-	public static void setSocialize(SocializeServiceImpl service) {
-		Socialize.instance = service;
-	}
-	
 	public static void init(Context context, String...paths) {
 		Socialize.instance.init(context, paths);
+	}
+	
+	public static void setAuthProviders(AuthProviders authProviders) {
+		Socialize.instance.setAuthProviders(authProviders);
+	}
+	
+	public static void setSession(SocializeSession session) {
+		Socialize.instance.setSession(session);
 	}
 	
 	public static void setCommentUtilsProxy(CommentUtilsProxy proxy) {

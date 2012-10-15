@@ -42,12 +42,14 @@ import com.socialize.util.DisplayUtils;
  * @author Jason Polites
  */
 public class ActionBarItem extends LinearLayout {
+	
+	public static final int DEFAULT_TEXT_COLOR = Color.WHITE;
 
 	private Drawable icon;
 	private String text;
 	
 	private float textSize = -1;
-	private int textColor = Color.WHITE;
+	private Integer textColor;
 	
 	private ImageView imageView;
 	private TextView textView;
@@ -61,11 +63,16 @@ public class ActionBarItem extends LinearLayout {
 		super(context);
 	}
 	
+	public ActionBarItem(Context context, int textColor) {
+		super(context);
+		this.textColor = textColor;
+	}
+	
 	public void init() {
 		
 		int leftMargin = displayUtils.getDIP(3);
 		
-		LayoutParams masterParams = new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.WRAP_CONTENT);
+		LayoutParams masterParams = new LayoutParams(LayoutParams.FILL_PARENT, LayoutParams.FILL_PARENT);
 		masterParams.gravity = Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL;
 				
 		setLayoutParams(masterParams);
@@ -174,11 +181,10 @@ public class ActionBarItem extends LinearLayout {
 		}
 		
 		textView.setTypeface(Typeface.DEFAULT_BOLD);
-		textView.setTextColor(textColor);
+		textView.setTextColor((textColor == null) ? DEFAULT_TEXT_COLOR : textColor);
 		textView.setLayoutParams(textParams);
 		
 		textLayout.addView(textView);
-		
 		
 /******************************************
  * Flipper

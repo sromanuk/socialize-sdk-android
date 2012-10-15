@@ -34,6 +34,7 @@ import com.socialize.listener.view.ViewListListener;
  * @author Jason Polites
  *
  */
+@Deprecated
 public class GetViewsByUserActivity extends SDKDemoActivity {
 
 	/* (non-Javadoc)
@@ -42,18 +43,23 @@ public class GetViewsByUserActivity extends SDKDemoActivity {
 	@Override
 	public void executeDemo(String text) {
 		
-		ViewUtils.getViewsByUser(this, UserUtils.getCurrentUser(this), 0, 50, new ViewListListener() {
-			
-			@Override
-			public void onList(List<View> items, int totalSize) {
-				handleSocializeResult(items);
-			}
-			
-			@Override
-			public void onError(SocializeException error) {
-				handleError(GetViewsByUserActivity.this, error);
-			}
-		});
+		try {
+			ViewUtils.getViewsByUser(this, UserUtils.getCurrentUser(this), 0, PAGE_SIZE, new ViewListListener() {
+				
+				@Override
+				public void onList(List<View> items, int totalSize) {
+					handleSocializeResult(items);
+				}
+				
+				@Override
+				public void onError(SocializeException error) {
+					handleError(GetViewsByUserActivity.this, error);
+				}
+			});
+		}
+		catch (SocializeException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -66,6 +72,6 @@ public class GetViewsByUserActivity extends SDKDemoActivity {
 	 */
 	@Override
 	public String getButtonText() {
-		return "List 50 Views for Current User";
+		return "List " + PAGE_SIZE + " Views for Current User";
 	}
 }

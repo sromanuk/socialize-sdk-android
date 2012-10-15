@@ -24,9 +24,7 @@ package com.socialize.ui;
 import android.app.Activity;
 import android.content.Intent;
 import android.graphics.Color;
-import android.os.AsyncTask;
 import android.os.Bundle;
-import android.util.Log;
 import android.widget.RelativeLayout;
 import android.widget.RelativeLayout.LayoutParams;
 import android.widget.TextView;
@@ -35,6 +33,7 @@ import com.socialize.SocializeService;
 import com.socialize.android.ioc.IOCContainer;
 import com.socialize.api.SocializeSession;
 import com.socialize.api.event.EventSystem;
+import com.socialize.concurrent.ManagedAsyncTask;
 import com.socialize.error.SocializeErrorHandler;
 import com.socialize.error.SocializeException;
 import com.socialize.launcher.AsyncLauncher;
@@ -170,7 +169,7 @@ public class SocializeLaunchActivity extends Activity {
 											"]", e);
 								}
 								else {
-									Log.e(SocializeLogger.LOG_TAG, e.getMessage(), e);
+									SocializeLogger.e(e.getMessage(), e);
 								}
 							}
 						}
@@ -232,7 +231,7 @@ public class SocializeLaunchActivity extends Activity {
 	}
 	
 	protected void handleError(Exception error) {
-		Log.e(SocializeLogger.LOG_TAG, error.getMessage(), error);
+		SocializeLogger.e(error.getMessage(), error);
 		if(errorHandler != null) {
 			errorHandler.handleError(SocializeLaunchActivity.this, error);
 		}		
@@ -263,7 +262,7 @@ public class SocializeLaunchActivity extends Activity {
 		return Socialize.getSocialize();
 	}
 	
-	protected class Initializer extends AsyncTask<Void, Void, Void>  {
+	protected class Initializer extends ManagedAsyncTask<Void, Void, Void>  {
 
 		@Override
 		protected Void doInBackground(Void... arg0) {
@@ -272,7 +271,7 @@ public class SocializeLaunchActivity extends Activity {
 		}
 
 		@Override
-		protected void onPostExecute(Void result) {
+		protected void onPostExecuteManaged(Void result) {
 			doAuthenticate();
 		}
 	}

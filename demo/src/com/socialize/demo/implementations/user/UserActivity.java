@@ -26,8 +26,10 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import android.widget.Toast;
 import com.socialize.UserUtils;
 import com.socialize.demo.R;
+import com.socialize.error.SocializeException;
 
 
 /**
@@ -35,7 +37,7 @@ import com.socialize.demo.R;
  *
  */
 public class UserActivity extends ListActivity {
-	final String[] values = new String[] { "Show User Settings", "Show User Profile"};
+	final String[] values = new String[] { "Show User Settings", "Show User Profile", "Wipe Local User Session"};
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -54,8 +56,18 @@ public class UserActivity extends ListActivity {
 			break;
 
 		case 1:
-			UserUtils.showUserProfile(this, UserUtils.getCurrentUser(this));
+			try {
+				UserUtils.showUserProfile(this, UserUtils.getCurrentUser(this));
+			}
+			catch (SocializeException e) {
+				e.printStackTrace();
+			}
 			break;
+			
+		case 2:
+			UserUtils.clearLocalSessionData(this);
+			Toast.makeText(this, "Session cleared", Toast.LENGTH_SHORT).show();
+			break;			
 		}
 	}
 }

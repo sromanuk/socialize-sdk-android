@@ -22,10 +22,8 @@
 package com.socialize.entity;
 
 import java.text.ParseException;
-
 import org.json.JSONException;
 import org.json.JSONObject;
-
 import com.socialize.log.SocializeLogger;
 import com.socialize.notifications.NotificationType;
 import com.socialize.util.StringUtils;
@@ -114,6 +112,9 @@ public class SubscriptionFactory extends SocializeObjectFactory<Subscription> {
 				if(!StringUtils.isEmpty(entityObject.getName()) && !StringUtils.isEmpty(entityObject.getKey())) {
 					JSONObject entity = entityFactory.toJSON(entityObject);
 					to.put("entity", entity);
+				}
+				else if(!StringUtils.isEmpty(entityObject.getKey())) {
+					to.put("entity_key", entityObject.getKey());
 				}
 			}
 			

@@ -112,8 +112,10 @@ LikeUtils.like(this, entity, likeOptions, new LikeAddListener() {
 	}
 
 	@Override
-	public void onBeforePost(Activity parent, SocialNetwork socialNetwork, PostData postData) {
+	public boolean onBeforePost(Activity parent, SocialNetwork socialNetwork, PostData postData) {
 		// Called before the post to the given network is made
+		// Return true to prevent the post from occurring
+		return false;
 	}
 
 	@Override
@@ -150,7 +152,7 @@ LikeUtils.getLikesByEntity(this, entityKey, 0, 10, new LikeListListener() {
 //end-snippet-6
 }
 
-public void getLikesByUser() {
+public void getLikesByUser() throws SocializeException {
 // begin-snippet-5
 User user = UserUtils.getCurrentUser(this);
 
@@ -171,4 +173,23 @@ LikeUtils.getLikesByUser(this, user, 0, 10, new LikeListListener() {
 //end-snippet-5
 }
 	
+
+public void getLikesByApplication() {
+// begin-snippet-7
+// Get first 10 likes
+// The "this" argument refers to the current Activity
+LikeUtils.getLikesByApplication(this, 0, 10, new LikeListListener() {
+	
+	@Override
+	public void onList(List<Like> likes, int totalCount) {
+		// Found likes
+	}
+	
+	@Override
+	public void onError(SocializeException error) {
+		// Handle error
+	}
+});
+//end-snippet-7
+}
 }

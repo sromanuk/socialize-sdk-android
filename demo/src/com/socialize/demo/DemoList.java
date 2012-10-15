@@ -27,6 +27,7 @@ import android.os.Bundle;
 import android.view.View;
 import android.widget.ArrayAdapter;
 import android.widget.ListView;
+import com.socialize.Socialize;
 import com.socialize.demo.implementations.action.ActionActivity;
 import com.socialize.demo.implementations.actionbar.ActionBarActivity;
 import com.socialize.demo.implementations.auth.AuthButtonsActivity;
@@ -37,6 +38,7 @@ import com.socialize.demo.implementations.like.LikeActivity;
 import com.socialize.demo.implementations.location.LocationActivity;
 import com.socialize.demo.implementations.share.ShareActivity;
 import com.socialize.demo.implementations.subscribe.SubscriptionActivity;
+import com.socialize.demo.implementations.tools.ToolsActivity;
 import com.socialize.demo.implementations.twitter.TwitterActivity;
 import com.socialize.demo.implementations.user.UserActivity;
 import com.socialize.demo.implementations.view.ViewActivity;
@@ -46,7 +48,7 @@ import com.socialize.demo.implementations.view.ViewActivity;
  */
 public class DemoList extends ListActivity {
 	
-	final String[] values = new String[] { "Config", "Linking Twitter & Facebook", "Facebook Direct", "Twitter Direct",  "Action Bar", "Sharing", "Comments", "Likes", "Views", "Entities", "User Profile", "Actions (User Activity)", "Subscriptions", "Location"};
+	final String[] values = new String[] { "Config", "Linking Twitter & Facebook", "Facebook Direct", "Twitter Direct",  "Action Bar", "Sharing", "Comments", "Likes", "Views", "Entities", "User Profile", "Actions (User Activity)", "Subscriptions", "Location", "Init", "Tools"};
 	final Class<?>[] activities = new Class<?>[] { 
 			AuthButtonsActivity.class, 
 			FacebookActivity.class,
@@ -60,11 +62,14 @@ public class DemoList extends ListActivity {
 			UserActivity.class,
 			ActionActivity.class, 
 			SubscriptionActivity.class, 
-			LocationActivity.class};
+			LocationActivity.class,
+			InitActivity.class,
+			ToolsActivity.class};
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		Socialize.onCreate(this, savedInstanceState);
 		setContentView(R.layout.demo_list);
 		ArrayAdapter<String> adapter = new ArrayAdapter<String>(this, android.R.layout.simple_list_item_1, android.R.id.text1, values);
 		setListAdapter(adapter);
@@ -86,5 +91,23 @@ public class DemoList extends ListActivity {
 	
 	protected void showConfigDialog() {
 		ConfigDialog.showConfigDialog(this);
+	}
+	
+	@Override
+	protected void onPause() {
+		super.onPause();
+		Socialize.onPause(this);
+	}
+
+	@Override
+	protected void onResume() {
+		super.onResume();
+		Socialize.onResume(this);
+	}
+
+	@Override
+	protected void onDestroy() {
+		Socialize.onDestroy(this);
+		super.onDestroy();
 	}
 }

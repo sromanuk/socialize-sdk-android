@@ -1,5 +1,23 @@
-/**
+/*
+ * Copyright (c) 2012 Socialize Inc.
  * 
+ * Permission is hereby granted, free of charge, to any person obtaining a copy
+ * of this software and associated documentation files (the "Software"), to deal
+ * in the Software without restriction, including without limitation the rights
+ * to use, copy, modify, merge, publish, distribute, sublicense, and/or sell
+ * copies of the Software, and to permit persons to whom the Software is
+ * furnished to do so, subject to the following conditions:
+ * 
+ * The above copyright notice and this permission notice shall be included in
+ * all copies or substantial portions of the Software.
+ * 
+ * THE SOFTWARE IS PROVIDED "AS IS", WITHOUT WARRANTY OF ANY KIND, EXPRESS OR
+ * IMPLIED, INCLUDING BUT NOT LIMITED TO THE WARRANTIES OF MERCHANTABILITY,
+ * FITNESS FOR A PARTICULAR PURPOSE AND NONINFRINGEMENT. IN NO EVENT SHALL THE
+ * AUTHORS OR COPYRIGHT HOLDERS BE LIABLE FOR ANY CLAIM, DAMAGES OR OTHER
+ * LIABILITY, WHETHER IN AN ACTION OF CONTRACT, TORT OR OTHERWISE, ARISING FROM,
+ * OUT OF OR IN CONNECTION WITH THE SOFTWARE OR THE USE OR OTHER DEALINGS IN
+ * THE SOFTWARE.
  */
 package com.socialize.ui.comment;
 
@@ -7,7 +25,6 @@ import java.util.Date;
 import java.util.List;
 import android.app.Activity;
 import android.graphics.drawable.Drawable;
-import android.util.Log;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
@@ -15,6 +32,7 @@ import android.widget.BaseAdapter;
 import android.widget.ImageView;
 import android.widget.TextView;
 import com.socialize.Socialize;
+import com.socialize.UserUtils;
 import com.socialize.android.ioc.IBeanFactory;
 import com.socialize.entity.Comment;
 import com.socialize.entity.User;
@@ -31,7 +49,7 @@ import com.socialize.util.StringUtils;
 
 /**
  * Provides comments to the comment view.
- * @author jasonpolites
+* @author Jason Polites
  */
 public class CommentAdapter extends BaseAdapter {
 
@@ -50,7 +68,7 @@ public class CommentAdapter extends BaseAdapter {
 
 	private int totalCount = 0;
 	
-	private int iconSize = 100;
+	private int iconSize = 64;
 	
 	private int count = 0;
 
@@ -177,7 +195,7 @@ public class CommentAdapter extends BaseAdapter {
 							@Override
 							public void onClick(View v) {
 								if(user != null && user.getId() != null) {
-									Socialize.getSocialize().showActionDetailView(context, user, item);
+									UserUtils.showUserProfileWithAction(context, user, item);
 								}
 								else {
 									if(logger != null) {
@@ -382,7 +400,7 @@ public class CommentAdapter extends BaseAdapter {
 			logger.error(msg, e);
 		}
 		else {
-			Log.e(SocializeLogger.LOG_TAG, e.getMessage(), e);
+			SocializeLogger.e(e.getMessage(), e);
 		}
 	}
 }

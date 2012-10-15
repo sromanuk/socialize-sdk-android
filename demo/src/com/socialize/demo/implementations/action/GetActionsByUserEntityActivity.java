@@ -42,20 +42,25 @@ public class GetActionsByUserEntityActivity extends SDKDemoActivity {
 	@Override
 	public void executeDemo(String text) {
 		
-		ActionUtils.getActionsByUserAndEntity(this, UserUtils.getCurrentUser(this).getId(), entity.getKey(), 0, 50, new ActionListListener() {
+		try {
+			ActionUtils.getActionsByUserAndEntity(this, UserUtils.getCurrentUser(this).getId(), entity.getKey(), 0, PAGE_SIZE, new ActionListListener() {
+				
+				
+				@Override
+				public void onList(ListResult<SocializeAction> result) {
 			
-			
-			@Override
-			public void onList(ListResult<SocializeAction> result) {
-		
-				handleSocializeResult(result);
-			}
-			
-			@Override
-			public void onError(SocializeException error) {
-				handleError(GetActionsByUserEntityActivity.this, error);
-			}
-		});
+					handleSocializeResult(result);
+				}
+				
+				@Override
+				public void onError(SocializeException error) {
+					handleError(GetActionsByUserEntityActivity.this, error);
+				}
+			});
+		}
+		catch (SocializeException e) {
+			e.printStackTrace();
+		}
 	}
 	
 	@Override
@@ -68,6 +73,6 @@ public class GetActionsByUserEntityActivity extends SDKDemoActivity {
 	 */
 	@Override
 	public String getButtonText() {
-		return "List 50 Actions for Current User & Entity";
+		return "List " + PAGE_SIZE + " Actions for Current User & Entity";
 	}
 }

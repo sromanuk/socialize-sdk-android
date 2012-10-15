@@ -8,7 +8,10 @@ Contents:
 	
 	whats_new
 	getting_started
+	lifecycle
+	demo
 	action_bar
+	entities
 	like_button
 	facebook
 	twitter
@@ -16,6 +19,7 @@ Contents:
 	twitter_adv
 	push_notifications
 	entity_loader
+	deep_linking
 	sdk_user_guide
 	config
 	amazon

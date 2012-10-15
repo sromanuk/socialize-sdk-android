@@ -1,1 +1,4 @@
 /build-instrumented
+out/*
+.idea/*
+*.iml

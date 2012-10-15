@@ -22,9 +22,9 @@
 package com.socialize.api;
 
 import java.util.List;
+import java.util.Map;
 import android.content.Context;
 import android.location.Location;
-import android.os.AsyncTask;
 import com.socialize.Socialize;
 import com.socialize.api.action.ActionOptions;
 import com.socialize.api.action.ActionType;
@@ -35,6 +35,7 @@ import com.socialize.auth.AuthProviderInfo;
 import com.socialize.auth.AuthProviderResponse;
 import com.socialize.auth.AuthProviderType;
 import com.socialize.auth.AuthProviders;
+import com.socialize.concurrent.ManagedAsyncTask;
 import com.socialize.config.SocializeConfig;
 import com.socialize.entity.ActionError;
 import com.socialize.entity.ListResult;
@@ -153,7 +154,38 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 					if(propagation != null) {
 						propagation.addExtraParam("f", abbrev);
 					}
-				}	
+				}
+				
+				String ogAction = null;
+				
+				switch(action.getActionType()) {
+					case LIKE:
+						if(config.isOGLike()) {
+							ogAction = "like";
+						}
+//						else {
+//							ogAction = config.getProperty(SocializeConfig.FACEBOOK_OG_LIKE_ACTION, null);
+//						}
+						break;
+						
+//					case COMMENT:
+//							ogAction = config.getProperty(SocializeConfig.FACEBOOK_OG_COMMENT_ACTION, null);
+//						break;
+//						
+//					case SHARE:
+//							ogAction = config.getProperty(SocializeConfig.FACEBOOK_OG_SHARE_ACTION, null);
+//						break;					
+				}
+				
+				if(ogAction != null) {
+					if(propagation != null) {
+						propagation.addExtraParam("og_action", ogAction);
+					}
+					
+					if(localPropagation != null) {
+						localPropagation.addExtraParam("og_action", ogAction);
+					}
+				}				
 			}
 			
 			action.setPropagation(propagation);
@@ -189,8 +221,8 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 		return provider.list(session, endpoint, key, ids, 0, SocializeConfig.MAX_LIST_RESULTS);
 	}
 	
-	public ListResult<T> list(SocializeSession session, String endpoint, String key, String idKey, int startIndex, int endIndex, String...ids) throws SocializeException {
-		return provider.list(session, endpoint, key, ids, idKey, startIndex, endIndex);
+	public ListResult<T> list(SocializeSession session, String endpoint, String key, String idKey, Map<String, String> extraParams, int startIndex, int endIndex, String...ids) throws SocializeException {
+		return provider.list(session, endpoint, key, ids, idKey, extraParams, startIndex, endIndex);
 	}
 	
 	public ListResult<T> list(SocializeSession session, String endpoint, String key, int startIndex, int endIndex, String...ids) throws SocializeException {
@@ -242,14 +274,15 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 	}
 	
 	public void listAsync(SocializeSession session, String endpoint, String key, int startIndex, int endIndex, SocializeActionListener listener, String...ids) {
-		listAsync(session, endpoint, key,  "id", startIndex, endIndex, listener, ids);
+		listAsync(session, endpoint, key,  "id", null, startIndex, endIndex, listener, ids);
 	}
 	
-	public void listAsync(SocializeSession session, String endpoint, String key, String idKey, int startIndex, int endIndex, SocializeActionListener listener, String...ids) {
+	public void listAsync(SocializeSession session, String endpoint, String key, String idKey, Map<String, String> extraParams, int startIndex, int endIndex, SocializeActionListener listener, String...ids) {
 		AsyncGetter getter = new AsyncGetter(session, listener);
 		SocializeGetRequest request = new SocializeGetRequest();
 		request.setEndpoint(endpoint);
 		request.setRequestType(RequestType.LIST);
+		request.setExtraParams(extraParams);
 		request.setKey(key);
 		request.setIds(ids);
 		request.setIdKey(idKey);
@@ -279,7 +312,7 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 	public void getByEntityAsync(SocializeSession session, String endpoint, String key, SocializeActionListener listener) {
 		AsyncGetter getter = new AsyncGetter(session, listener);
 		SocializeGetRequest request = new SocializeGetRequest();
-		request.setRequestType(RequestType.LIST_AS_GET);
+		request.setRequestType(RequestType.LIST);
 		request.setEndpoint(endpoint);
 		request.setKey(key);
 		getter.execute(request);
@@ -470,7 +503,7 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 			return AuthProviderType.SOCIALIZE;
 		}
 		
-		AuthProviderType authProviderType = data.getAuthProviderType();
+		AuthProviderType authProviderType = null;
 		
 		AuthProviderInfo authProviderInfo = data.getAuthProviderInfo();
 		
@@ -481,26 +514,14 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 		return authProviderType;
 	}
 	
-	protected void validate(AuthProviderData data) throws SocializeException{
+	protected void validate(AuthProviderData data) throws SocializeException {
 		AuthProviderInfo authProviderInfo = data.getAuthProviderInfo();
 		
 		if(authProviderInfo != null) {
 			authProviderInfo.validate();
 		}
 		else {
-			// Legacy
-			validateLegacy(data);
-		}
-	}
-	
-	protected void validateLegacy(AuthProviderData data) throws SocializeException {
-		AuthProviderType authProviderType = getAuthProviderType(data);
-		
-		String appId3rdParty = data.getAppId3rdParty();
-		if(authProviderType != null && 
-				authProviderType.equals(AuthProviderType.FACEBOOK) && 
-				StringUtils.isEmpty(appId3rdParty)) {
-			throw new SocializeException("No app ID found for auth type FACEBOOK");
+			throw new SocializeException("Empty auth provider info");
 		}
 	}
 	
@@ -550,6 +571,8 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 			
 			if(authProvider != null) {
 				
+//				final SocializeSession fSession = session;
+				
 				AuthProviderListener authProviderListener = new AuthProviderListener() {
 					
 					@Override
@@ -561,6 +584,9 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 					
 					@Override
 					public void onAuthSuccess(AuthProviderResponse response) {
+						
+						// Update the local session, it will be saved after regular auth
+//						provider.updateSession(fSession, authProviderData);
 						
 						authProviderData.setUserId3rdParty(response.getUserId());
 						authProviderData.setToken3rdParty(response.getToken());
@@ -645,7 +671,7 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 		this.locationProvider = locationProvider;
 	}
 
-	abstract class AbstractAsyncProcess<Params extends SocializeRequest, Progress, Result extends SocializeResponse> extends AsyncTask<Params, Progress, Result> {
+	abstract class AbstractAsyncProcess<Params extends SocializeRequest, Progress, Result extends SocializeResponse> extends ManagedAsyncTask<Params, Progress, Result> {
 
 		RequestType requestType;
 		SocializeSession session;
@@ -681,7 +707,7 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 		}
 		
 		@Override
-		protected void onPostExecute(Result result) {
+		protected void onPostExecuteManaged(Result result) {
 			if(listener != null) {
 				if(error != null) {
 					listener.onError(SocializeException.wrap(error));
@@ -812,7 +838,7 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 		}
 
 		@Override
-		protected void onPostExecute(SocializeEntityResponse<T> result) {
+		protected void onPostExecuteManaged(SocializeEntityResponse<T> result) {
 			if(listener != null) {
 				if(error != null) {
 					listener.onError(SocializeException.wrap(error));
@@ -882,12 +908,12 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 				break;
 
 			case LIST:
-				results = SocializeApi.this.list(session, request.getEndpoint(), request.getKey(), request.getIdKey(), request.getStartIndex(), request.getEndIndex(), request.getIds());
+				results = SocializeApi.this.list(session, request.getEndpoint(), request.getKey(), request.getIdKey(), request.getExtraParams(), request.getStartIndex(), request.getEndIndex(), request.getIds());
 				response.setResults(results);
 				break;
 				
 			case LIST_AS_GET:
-				results = SocializeApi.this.list(session, request.getEndpoint(), request.getKey(), request.getIdKey(), request.getStartIndex(), request.getEndIndex(), request.getIds());
+				results = SocializeApi.this.list(session, request.getEndpoint(), request.getKey(), request.getIdKey(), request.getExtraParams(), request.getStartIndex(), request.getEndIndex(), request.getIds());
 				response.setResults(results);
 				break;				
 				

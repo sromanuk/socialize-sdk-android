@@ -24,36 +24,17 @@ package com.socialize.test;
 import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
-import android.location.Location;
-import android.view.View;
-import android.widget.RelativeLayout;
-import android.widget.RelativeLayout.LayoutParams;
-import android.widget.ScrollView;
 import com.socialize.SocializeServiceImpl;
-import com.socialize.api.action.ShareType;
-import com.socialize.api.action.activity.ActivitySystem;
-import com.socialize.api.action.comment.CommentSystem;
-import com.socialize.api.action.comment.SubscriptionSystem;
-import com.socialize.api.action.entity.EntitySystem;
-import com.socialize.api.action.like.LikeSystem;
 import com.socialize.api.action.share.ShareSystem;
 import com.socialize.api.action.user.UserSystem;
-import com.socialize.api.action.view.ViewSystem;
 import com.socialize.auth.AuthProviderInfoBuilder;
-import com.socialize.auth.AuthProviderType;
 import com.socialize.auth.AuthProviders;
 import com.socialize.auth.SocializeAuthProviderInfo;
 import com.socialize.entity.Comment;
-import com.socialize.entity.Share;
-import com.socialize.entity.SocializeAction;
 import com.socialize.ioc.SocializeIOC;
 import com.socialize.listener.SocializeListener;
-import com.socialize.listener.share.ShareAddListener;
 import com.socialize.log.SocializeLogger;
-import com.socialize.networks.SocialNetwork;
-import com.socialize.networks.SocialNetworkListener;
 import com.socialize.notifications.WakeLock;
-import com.socialize.ui.actionbar.ActionBarView;
 import com.socialize.util.ClassLoaderProvider;
 import com.socialize.util.ResourceLocator;
 
@@ -155,21 +136,6 @@ public class PublicSocialize extends SocializeServiceImpl {
 	}
 
 	@Override
-	public void handleActionShare(Activity activity, ShareType shareType, Share share, String shareText, Location location, ShareAddListener shareAddListener) {
-		super.handleActionShare(activity, shareType, share, shareText, location, shareAddListener);
-	}
-
-	@Override
-	public void handleActionShare(Activity activity, SocialNetwork socialNetwork, SocializeAction action, String shareText, SocialNetworkListener listener) {
-		super.handleActionShare(activity, socialNetwork, action, shareText, listener);
-	}
-
-	@Override
-	public boolean isAuthenticatedLegacy(AuthProviderType providerType) {
-		return super.isAuthenticatedLegacy(providerType);
-	}
-
-	@Override
 	public boolean assertAuthenticated(SocializeListener listener) {
 		return super.assertAuthenticated(listener);
 	}
@@ -180,66 +146,14 @@ public class PublicSocialize extends SocializeServiceImpl {
 	}
 
 	@Override
-	public ActionBarView newActionBarView(Activity parent) {
-		return super.newActionBarView(parent);
-	}
-
-	@Override
 	public Intent newIntent(Activity context, Class<?> cls) {
 		return super.newIntent(context, cls);
-	}
-
-	@Override
-	public LayoutParams newLayoutParams(int width, int height) {
-		return super.newLayoutParams(width, height);
-	}
-
-	@Override
-	public LayoutParams newLayoutParams(android.view.ViewGroup.LayoutParams source) {
-
-		return super.newLayoutParams(source);
-	}
-
-	@Override
-	public RelativeLayout newRelativeLayout(Activity parent) {
-
-		return super.newRelativeLayout(parent);
-	}
-
-	@Override
-	public ScrollView newScrollView(Activity parent) {
-
-		return super.newScrollView(parent);
-	}
-
-	@Override
-	public View inflateView(Activity parent, int resId) {
-
-		return super.inflateView(parent, resId);
-	}
-
-	@Override
-	public void setCommentSystem(CommentSystem commentSystem) {
-
-		super.setCommentSystem(commentSystem);
 	}
 
 	@Override
 	public void setShareSystem(ShareSystem shareSystem) {
 
 		super.setShareSystem(shareSystem);
-	}
-
-	@Override
-	public void setLikeSystem(LikeSystem likeSystem) {
-
-		super.setLikeSystem(likeSystem);
-	}
-
-	@Override
-	public void setViewSystem(ViewSystem viewSystem) {
-
-		super.setViewSystem(viewSystem);
 	}
 
 	@Override
@@ -252,24 +166,6 @@ public class PublicSocialize extends SocializeServiceImpl {
 	public void setAuthProviders(AuthProviders authProviders) {
 
 		super.setAuthProviders(authProviders);
-	}
-
-	@Override
-	public void setActivitySystem(ActivitySystem activitySystem) {
-
-		super.setActivitySystem(activitySystem);
-	}
-
-	@Override
-	public void setEntitySystem(EntitySystem entitySystem) {
-
-		super.setEntitySystem(entitySystem);
-	}
-
-	@Override
-	public void setSubscriptionSystem(SubscriptionSystem subscriptionSystem) {
-
-		super.setSubscriptionSystem(subscriptionSystem);
 	}
 
 	@Override

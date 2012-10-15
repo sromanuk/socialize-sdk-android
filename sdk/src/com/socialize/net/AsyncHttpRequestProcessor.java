@@ -26,8 +26,9 @@ import org.apache.http.Header;
 import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
-import android.os.AsyncTask;
+import com.socialize.concurrent.ManagedAsyncTask;
 import com.socialize.error.SocializeApiError;
 import com.socialize.error.SocializeException;
 import com.socialize.log.SocializeLogger;
@@ -39,7 +40,7 @@ import com.socialize.util.IOUtils;
  * @author Jason Polites
  *
  */
-public class AsyncHttpRequestProcessor extends AsyncTask<AsyncHttpRequest, Void, AsyncHttpResponse> {
+public class AsyncHttpRequestProcessor extends ManagedAsyncTask<AsyncHttpRequest, Void, AsyncHttpResponse> {
 
 	private HttpClientFactory clientFactory;
 	private HttpUtils httpUtils;
@@ -70,11 +71,19 @@ public class AsyncHttpRequestProcessor extends AsyncTask<AsyncHttpRequest, Void,
 						builder.append("\n");
 					}
 					
-					logger.debug("Executing request \nurl:[" +
+					logger.debug("REQUEST \nurl:[" +
 							httpRequest.getURI().toString() +
 							"] \nheaders:\n" +
-							builder.toString() +
-							"");					
+							builder.toString());
+					
+					if(httpRequest instanceof HttpPost) {
+						HttpPost post = (HttpPost) httpRequest;
+						HttpEntity entity = post.getEntity();
+						String requestData = ioUtils.readSafe(entity.getContent());
+						logger.debug("REQUEST \ndata:[" +
+								requestData +
+								"]");
+					}
 				}
 				
 				HttpClient client = clientFactory.getClient();
@@ -84,7 +93,7 @@ public class AsyncHttpRequestProcessor extends AsyncTask<AsyncHttpRequest, Void,
 				response.setResponse(httpResponse);
 				
 				if(logger != null && logger.isDebugEnabled()) {
-					logger.debug("Response: " + httpResponse.getStatusLine().getStatusCode());
+					logger.debug("RESPONSE CODE: " + httpResponse.getStatusLine().getStatusCode());
 				}
 				
 				HttpEntity entity = null;
@@ -100,7 +109,7 @@ public class AsyncHttpRequestProcessor extends AsyncTask<AsyncHttpRequest, Void,
 						String responseData = ioUtils.readSafe(entity.getContent());
 						
 						if(logger != null && logger.isDebugEnabled()) {
-							logger.debug("Response JSON: " + responseData);
+							logger.debug("RESPONSE: " + responseData);
 						}						
 						
 						response.setResponseData(responseData);
@@ -123,7 +132,7 @@ public class AsyncHttpRequestProcessor extends AsyncTask<AsyncHttpRequest, Void,
 	}
 	
 	@Override
-	protected void onPostExecute(AsyncHttpResponse result) {
+	protected void onPostExecuteManaged(AsyncHttpResponse result) {
 		AsyncHttpRequest request = result.getRequest();
 		HttpRequestListener listener = request.getListener();
 

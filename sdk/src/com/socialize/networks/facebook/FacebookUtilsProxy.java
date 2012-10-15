@@ -31,18 +31,20 @@ import android.net.Uri;
 import com.socialize.annotations.Synchronous;
 import com.socialize.api.action.share.SocialNetworkShareListener;
 import com.socialize.entity.Entity;
+import com.socialize.facebook.Facebook;
 import com.socialize.listener.SocializeAuthListener;
 import com.socialize.networks.SocialNetworkPostListener;
+import com.socialize.networks.SocializeDeAuthListener;
 
 /**
  * @author Jason Polites
  */
 public interface FacebookUtilsProxy {
 	public void link (Activity context, SocializeAuthListener listener);
-	public void link (Activity context, String token, SocializeAuthListener listener);
+	public void link (Activity context, String token, boolean verifyPermissions, SocializeAuthListener listener);
 	public void link(Activity context, SocializeAuthListener listener, String...permissions);
 	
-	public void unlink (Context context);
+	public void unlink (Context context, SocializeDeAuthListener listener);
 	
 	@Synchronous
 	public boolean isLinked(Context context);
@@ -56,6 +58,8 @@ public interface FacebookUtilsProxy {
 	@Synchronous
 	public String getAccessToken(Context context);
 	
+	public void extendAccessToken(Activity context, SocializeAuthListener listener);
+	
 	public void postEntity(Activity context, Entity entity, String text, SocialNetworkShareListener listener);
 	
 	public void post(Activity context, String graphPath, Map<String, Object> postData, SocialNetworkPostListener listener);
@@ -63,9 +67,14 @@ public interface FacebookUtilsProxy {
 	public void get(Activity context, String graphPath, Map<String, Object> postData, SocialNetworkPostListener listener);
 	
 	public void delete(Activity context, String graphPath, Map<String, Object> postData, SocialNetworkPostListener listener);
+	
+	public void getCurrentPermissions(Activity context, String token, FacebookPermissionCallback callback);
 
 	public byte[] getImageForPost(Activity context, Uri imagePath) throws IOException;
 	
 	public byte[] getImageForPost(Activity context, Bitmap image, CompressFormat format) throws IOException;
+	
+	@Synchronous
+	public Facebook getFacebook(Context context);
 	
 }

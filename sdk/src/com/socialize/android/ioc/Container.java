@@ -42,6 +42,7 @@ public class Container {
 	protected static Map<String, Object> staticProxies = new HashMap<String, Object>();
 	protected static Map<String, Object> staticStubs = new HashMap<String, Object>();
 	protected static Set<String> staticProxiesRemoved = new HashSet<String>();
+	protected static BeanContextCache beanContextCache = new BeanContextCache();
 	
 	private Map<String, Object> beans;
 	private Map<String, ProxyObject<?>> proxies;
@@ -216,7 +217,12 @@ public class Container {
 	}
 	
 	@SuppressWarnings("unchecked")
-	public <T extends Object> T getBean(String name, Object...args) {
+	public<T extends Object> T getBean(String name, Object...args) {
+		return (T) beanContextCache.get(this, name, args);
+	}
+	
+	@SuppressWarnings("unchecked")
+	<T extends Object> T getBeanLocal(String name, Object...args) {
 		
 		if(staticStubs.containsKey(name)) {
 			return (T) staticStubs.get(name);
@@ -363,16 +369,18 @@ public class Container {
 		if(mapping != null) {
 			Collection<BeanRef> beanRefs = mapping.getBeanRefs();
 
-			if(beanRefs != null) {
-				for (BeanRef beanRef : beanRefs) {
-					Object bean = beans.get(beanRef.getName());
-					if(bean != null) {
-						builder.destroyBean(this, beanRef, bean);
+			try {
+				if(beanRefs != null) {
+					for (BeanRef beanRef : beanRefs) {
+						Object bean = beans.get(beanRef.getName());
+						if(bean != null) {
+							builder.destroyBean(this, beanRef, bean);
+						}
 					}
 				}
-				
-				beanRefs.clear();
-				beanRefs = null;
+			}
+			finally {
+				mapping.clear();
 			}
 		}
 		
@@ -421,11 +429,20 @@ public class Container {
 	protected BeanMapping getBeanMapping() {
 		return mapping;
 	}
+	
+	public void onContextDestroyed(Context context) {
+		beanContextCache.onContextDestroyed(context);
+	}
 
 	public void setContext(Context context) {
 		
+		beanContextCache.setContext(context);
+		
 		if(!destroyed) {
+			
 			if(this.context != null && this.context != context) {
+				
+				// Clear context cache
 				// Set for any new beans
 				builder.setContext(context);
 				

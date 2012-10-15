@@ -22,7 +22,6 @@
 package com.socialize.api;
 
 import android.content.Context;
-
 import com.socialize.auth.AuthProviderType;
 import com.socialize.entity.User;
 import com.socialize.ui.profile.UserSettings;
@@ -41,4 +40,6 @@ public interface SocializeSessionPersister {
 	public void delete(Context context, AuthProviderType type);
 	
 	public void saveUser(Context context, User user, UserSettings settings);
+	
+	public void saveUserSettingsAsync(Context context, UserSettings settings);
 }

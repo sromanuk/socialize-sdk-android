@@ -51,7 +51,6 @@ import com.socialize.entity.SocializeAction;
 import com.socialize.error.SocializeException;
 import com.socialize.facebook.AsyncFacebookRunner;
 import com.socialize.facebook.Facebook;
-import com.socialize.facebook.RequestListener;
 import com.socialize.listener.SocializeInitListener;
 import com.socialize.listener.share.ShareListener;
 import com.socialize.networks.PostData;
@@ -74,6 +73,10 @@ public class SocialNetworkShareListenerTest extends SocializeActivityTest {
 	public void testFacebookWallPosterCallsListener() throws InterruptedException {
 		
 		final String dummyResponse = "{foo:bar}";
+		
+		final Facebook mockFacebook = new Facebook("foobar") {
+			
+		};
 		
 		// We don't know, and shouldn't care WHICH method is called on Facebook's code so mock them all.
 		final AsyncFacebookRunner mockRunner = new AsyncFacebookRunner(null) {
@@ -141,6 +144,16 @@ public class SocialNetworkShareListenerTest extends SocializeActivityTest {
 			protected FacebookSessionStore newFacebookSessionStore() {
 				return mockStore;
 			}
+
+			@Override
+			protected Facebook getFacebook(Context context) {
+				return mockFacebook;
+			}
+
+			@Override
+			protected String getFacebookAppId() {
+				return "foobar";
+			}
 		};
 		
 		final CountDownLatch latch = new CountDownLatch(2);
@@ -166,9 +179,10 @@ public class SocialNetworkShareListenerTest extends SocializeActivityTest {
 			}
 			
 			@Override
-			public void onBeforePost(Activity parent, SocialNetwork socialNetwork, PostData postData) {
+			public boolean onBeforePost(Activity parent, SocialNetwork socialNetwork, PostData postData) {
 				addResult(0, postData);
 				latch.countDown();
+				return false;
 			}
 		};
 		
@@ -176,7 +190,7 @@ public class SocialNetworkShareListenerTest extends SocializeActivityTest {
 		String mockText = "foobar";
 		DefaultPropagationInfo propInfo = new DefaultPropagationInfo();
 		
-		poster.post(getActivity(), entity, mockText, propInfo, listener);
+		poster.post(TestUtils.getActivity(this), entity, mockText, propInfo, listener);
 		
 		assertTrue(latch.await(10, TimeUnit.SECONDS));
 		
@@ -201,7 +215,7 @@ public class SocialNetworkShareListenerTest extends SocializeActivityTest {
 		// Expect
 		AndroidMock.expect(socialize.isSupported(AuthProviderType.FACEBOOK)).andReturn(true);
 		AndroidMock.expect(socialize.isAuthenticated(AuthProviderType.FACEBOOK)).andReturn(true);
-		poster.post(getActivity(), entity, mockText, propInfo, listener);
+		poster.post(TestUtils.getActivity(this), entity, mockText, propInfo, listener);
 		
 		AndroidMock.replay(socialize, poster);
 		
@@ -213,7 +227,7 @@ public class SocialNetworkShareListenerTest extends SocializeActivityTest {
 		};
 		
 		sharer.setFacebookWallPoster(poster);
-		sharer.share(getActivity(), entity, propInfo, mockText, true, ActionType.SHARE, listener);
+		sharer.share(TestUtils.getActivity(this), entity, propInfo, mockText, true, ActionType.SHARE, listener);
 		
 		AndroidMock.verify(socialize, poster);
 	}
@@ -227,7 +241,7 @@ public class SocialNetworkShareListenerTest extends SocializeActivityTest {
 		SocialNetworkShareListener listener = new SocialNetworkShareListener() {};
 		
 		// Expect
-		handler.handle(AndroidMock.eq(getActivity()), AndroidMock.eq(share), (Location) AndroidMock.isNull(), AndroidMock.eq(mockText), AndroidMock.eq(listener));
+		handler.handle(AndroidMock.eq(TestUtils.getActivity(this)), AndroidMock.eq(share), (Location) AndroidMock.isNull(), AndroidMock.eq(mockText), AndroidMock.eq(listener));
 		
 		AndroidMock.replay(handler);
 		
@@ -238,7 +252,7 @@ public class SocialNetworkShareListenerTest extends SocializeActivityTest {
 			}
 		};
 		
-		shareSystem.share(getActivity(), null, share, mockText, null, ShareType.FACEBOOK, listener);
+		shareSystem.share(TestUtils.getActivity(this), null, share, mockText, null, ShareType.FACEBOOK, listener);
 		
 		AndroidMock.verify(handler);
 	}
@@ -296,7 +310,7 @@ public class SocialNetworkShareListenerTest extends SocializeActivityTest {
 		Entity mock = Entity.newInstance("Test", "Test");
 		SocialNetworkShareListener listener = new SocialNetworkShareListener() {};
 		
-		ShareUtils.shareViaSocialNetworks(getActivity(), mock, shareOptions, listener, SocialNetwork.FACEBOOK);
+		ShareUtils.shareViaSocialNetworks(TestUtils.getActivity(this), mock, shareOptions, listener, SocialNetwork.FACEBOOK);
 		
 		assertTrue(latch.await(10, TimeUnit.SECONDS));
 		

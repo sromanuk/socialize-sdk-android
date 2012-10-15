@@ -48,11 +48,12 @@ import com.socialize.util.ImageUtils;
  *
  */
 public class TwitterSharer extends AbstractSocialNetworkSharer {
-	
+
 	private static final String TWITTER_COMMENT_MESSAGE = "socialize.twitter.comment.message";
 	private static final String TWITTER_PICTURE = "socialize.sharing.picture";
 	private static final String SHARING_EFFECT_NAME = "socialize.sharing.effect.name";
 
+	private TwitterUtilsProxy twitterUtils;
 
 	/* (non-Javadoc)
 	 * @see com.socialize.networks.AbstractSocialNetworkSharer#getNetwork()
@@ -60,14 +61,6 @@ public class TwitterSharer extends AbstractSocialNetworkSharer {
 	@Override
 	protected SocialNetwork getNetwork() {
 		return SocialNetwork.TWITTER;
-	}
-
-	@Override
-	public void share(Activity context, Entity entity, PropagationInfo urlSet, String comment, boolean autoAuth, ActionType type, SocialNetworkListener listener) {
-		if(listener != null) {
-			listener.onBeforePost(context, getNetwork(), null);
-		}
-		super.share(context, entity, urlSet, comment, autoAuth, type, listener);
 	}
 
 	/*
@@ -162,8 +155,12 @@ public class TwitterSharer extends AbstractSocialNetworkSharer {
 			tweet.setLocation(LocationUtils.getLastKnownLocation(context));
 			tweet.setShareLocation(true);
 		}
-		
-		TwitterUtils.tweetPhoto(context, tweet, listener);
+
+//		TwitterUtils.tweetPhoto(context, tweet, listener);
+		twitterUtils.tweet(context, tweet, listener);
 	}
 
+	public void setTwitterUtils(TwitterUtilsProxy twitterUtils) {
+		this.twitterUtils = twitterUtils;
+	}
 }

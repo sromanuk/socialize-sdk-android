@@ -21,19 +21,25 @@
  */
 package com.socialize.demo.snippets;
 
+import android.app.Activity;
+import android.app.Dialog;
 import com.socialize.ShareUtils;
+import com.socialize.UserUtils;
+import com.socialize.api.action.ShareType;
 import com.socialize.api.action.share.SocialNetworkDialogListener;
 import com.socialize.entity.Entity;
+import com.socialize.entity.ListResult;
+import com.socialize.entity.Share;
+import com.socialize.entity.User;
 import com.socialize.error.SocializeException;
+import com.socialize.listener.share.ShareGetListener;
+import com.socialize.listener.share.ShareListListener;
 import com.socialize.networks.PostData;
 import com.socialize.networks.SocialNetwork;
 import com.socialize.ui.auth.AuthDialogListener;
 import com.socialize.ui.auth.AuthPanelView;
 import com.socialize.ui.share.DialogFlowController;
-import com.socialize.ui.share.ShareDialogListener;
 import com.socialize.ui.share.SharePanelView;
-import android.app.Activity;
-import android.app.Dialog;
 
 
 /**
@@ -57,7 +63,7 @@ public void showShareDialogWithInterrupt() {
 Entity entity = Entity.newInstance("http://myentity.com", "My Name");	
 
 // The "this" argument refers to the current Activity
-ShareUtils.showShareDialog(this, entity, new ShareDialogListener() {
+ShareUtils.showShareDialog(this, entity, new SocialNetworkDialogListener() {
 	
 	@Override
 	public void onShow(Dialog dialog, SharePanelView dialogView) {
@@ -70,10 +76,15 @@ ShareUtils.showShareDialog(this, entity, new ShareDialogListener() {
 	}
 	
 	@Override
+	public void onSimpleShare(ShareType type) {
+		// User performed a simple share operation (e.g. Email or SMS)
+	}
+	
+	@Override
 	public void onFlowInterrupted(DialogFlowController controller) {
-		// This will only be called if onContinue returns false
+		// This will only be called if onContinue returns true
 		
-		// Obtain a comment from the user
+		// Obtain a share from the user
 		String text = "...";
 		
 		// Call continue when you want flow to resume
@@ -94,7 +105,7 @@ public void showShareDialogWithOptions() {
 Entity entity = Entity.newInstance("http://myentity.com", "My Name");	
 
 // Setup the options for display
-int options = ShareUtils.FACEBOOK | ShareUtils.TWITTER;
+int options = ShareUtils.FACEBOOK | ShareUtils.TWITTER | ShareUtils.GOOGLE_PLUS;
 
 // The "this" argument refers to the current Activity
 ShareUtils.showShareDialog(this, entity, new SocialNetworkDialogListener() {
@@ -124,7 +135,7 @@ public void showShareDialogWithOverride() {
 Entity entity = Entity.newInstance("http://myentity.com", "My Name");	
 
 // Setup the options for display
-int options = ShareUtils.SOCIAL; // This is just a shortcut for Twitter and Facebook.
+int options = ShareUtils.SOCIAL; // This is just a shortcut for Twitter, Facebook and Google+.
 
 // The "this" argument refers to the current Activity
 ShareUtils.showShareDialog(this, entity, new SocialNetworkDialogListener() {
@@ -145,11 +156,13 @@ ShareUtils.showShareDialog(this, entity, new SocialNetworkDialogListener() {
 	}
 
 	@Override
-	public void onBeforePost(Activity parent, SocialNetwork socialNetwork, PostData postData) {
+	public boolean onBeforePost(Activity parent, SocialNetwork socialNetwork, PostData postData) {
 		// Change data for facebook post
 		if(socialNetwork != null && socialNetwork.equals(SocialNetwork.FACEBOOK)) {
 			postData.getPostValues().put("foo", "bar");
 		}
+		
+		return false;
 	}
 	
 }, options);
@@ -187,5 +200,92 @@ ShareUtils.showLinkDialog(this, new AuthDialogListener() {
 	}
 });
 //end-snippet-4	
+}
+
+public void getShareById() {
+// begin-snippet-7
+long shareId = 123L; 
+
+// The "this" argument refers to the current Activity
+ShareUtils.getShare(this, new ShareGetListener() {
+	
+	@Override
+	public void onGet(Share result) {
+		// Share found
+	}
+	
+	@Override
+	public void onError(SocializeException error) {
+		if(isNotFoundError(error)) {
+			// No share with ID found
+		}
+		else {
+			// Some other error
+		}
+	}
+	
+}, shareId);
+//end-snippet-7
+}
+
+public void getSharesByApplication() {
+// begin-snippet-8
+// Get first 10 shares
+// The "this" argument refers to the current Activity
+ShareUtils.getSharesByApplication(this, 0, 10, new ShareListListener() {
+	
+	@Override
+	public void onList(ListResult<Share> result) {
+		// Found shares
+	}
+	
+	@Override
+	public void onError(SocializeException error) {
+		// Handle error
+	}
+});
+//end-snippet-8
+}
+
+public void getSharesByEntity() {
+// begin-snippet-6
+String entityKey = "http://getsocialize.com";
+
+// Get first 10 shares
+// The "this" argument refers to the current Activity
+ShareUtils.getSharesByEntity(this, entityKey, 0, 10, new ShareListListener() {
+	
+	@Override
+	public void onList(ListResult<Share> result) {
+		// Found shares
+	}
+	
+	@Override
+	public void onError(SocializeException error) {
+		// Handle error
+	}
+});
+//end-snippet-6
+}
+
+public void getSharesByUser() throws SocializeException {
+// begin-snippet-5
+User user = UserUtils.getCurrentUser(this);
+
+// Get first 10 shares by user
+// The "this" argument refers to the current Activity
+ShareUtils.getSharesByUser(this, user, 0, 10, new ShareListListener() {
+	
+	@Override
+	public void onList(ListResult<Share> result) {
+		// Found shares
+	}
+	
+	@Override
+	public void onError(SocializeException error) {
+		// Handle error
+	}
+});
+//end-snippet-5
 }
 }

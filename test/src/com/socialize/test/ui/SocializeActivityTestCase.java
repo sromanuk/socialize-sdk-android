@@ -11,10 +11,12 @@ import com.socialize.android.ioc.IOCContainer;
 import com.socialize.sample.ui.SampleSocializeActivity;
 import com.socialize.sample.ui.TestActivityCallbackHolder;
 import com.socialize.sample.ui.TestSocializeActivityCallback;
+import com.socialize.test.SocializeActivityTest;
+import com.socialize.test.ui.util.TestUtils;
 import com.socialize.ui.ActivityIOCProvider;
 import com.socialize.ui.SocializeActivity;
 
-public class SocializeActivityTestCase extends SocializeUIActivityTest {
+public class SocializeActivityTestCase extends SocializeActivityTest {
 
 	
 	@UsesMocks ({TestSocializeActivityCallback.class, IOCContainer.class})
@@ -33,15 +35,15 @@ public class SocializeActivityTestCase extends SocializeUIActivityTest {
 		
 		TestActivityCallbackHolder.callback = callback;
 		
-		Intent i = new Intent(getActivity(), SampleSocializeActivity.class);
+		Intent i = new Intent(TestUtils.getActivity(this), SampleSocializeActivity.class);
 		
 		int code = 69;
 		
-		getActivity().startActivityForResult(i, code);
+		TestUtils.getActivity(this).startActivityForResult(i, code);
 		
 		sleep(2000);
 		
-		getActivity().finishActivity(code);
+		TestUtils.getActivity(this).finishActivity(code);
 		
 		sleep(2000);
 		

@@ -24,14 +24,10 @@ package com.socialize.ui;
 import java.util.Collection;
 import java.util.LinkedHashSet;
 import java.util.Set;
-
 import android.app.Activity;
 import android.app.Dialog;
 import android.content.Intent;
 import android.os.Bundle;
-import android.util.Log;
-import android.view.Window;
-
 import com.socialize.log.SocializeLogger;
 import com.socialize.ui.dialog.DialogRegister;
 
@@ -49,11 +45,10 @@ public abstract class SocializeUIActivity extends Activity implements DialogRegi
 		try {
 			super.onCreate(savedInstanceState);
 			dialogs = new LinkedHashSet<Dialog>();
-			this.requestWindowFeature(Window.FEATURE_NO_TITLE);
 			onCreateSafe(savedInstanceState);
 		}
 		catch (Throwable e) {
-			Log.e(SocializeLogger.LOG_TAG, "", e);
+			SocializeLogger.e("", e);
 			finish();
 		}
 	}
@@ -64,7 +59,7 @@ public abstract class SocializeUIActivity extends Activity implements DialogRegi
 			onNewIntentSafe(intent);
 		}
 		catch (Throwable e) {
-			Log.e(SocializeLogger.LOG_TAG, "", e);
+			SocializeLogger.e("", e);
 			finish();
 		}
 	}

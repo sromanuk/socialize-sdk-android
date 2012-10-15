@@ -2,21 +2,24 @@ package com.socialize.auth.facebook;
 
 import android.content.Intent;
 import android.os.Bundle;
-
 import com.socialize.config.SocializeConfig;
 import com.socialize.facebook.Facebook;
 import com.socialize.listener.AuthProviderListener;
 import com.socialize.listener.ListenerHolder;
+import com.socialize.log.SocializeLogger;
+import com.socialize.networks.facebook.FacebookUtilsProxy;
 import com.socialize.util.DialogFactory;
 
 public class FacebookActivityService {
 
 	private Facebook facebook;
+	private FacebookUtilsProxy facebookUtils;
 	private FacebookSessionStore facebookSessionStore;
 	private ListenerHolder listenerHolder;
 	private FacebookActivity activity;
 	private DialogFactory dialogFactory;
 	private SocializeConfig config;
+	private SocializeLogger logger;
 	
 	private FacebookService service;
 	
@@ -37,24 +40,24 @@ public class FacebookActivityService {
 			Bundle extras = intent.getExtras();
 			
 			if(extras != null) {
-				String appId = extras.getString("appId");
 				String[] permissions = extras.getStringArray("permissions");
 				
 				facebookSessionStore = activity.getBean("facebookSessionStore");
 				listenerHolder = activity.getBean("listenerHolder");
 				dialogFactory = activity.getBean("dialogFactory");
+				logger = activity.getBean("logger");
 				config = activity.getBean("config");
-				facebook = new Facebook(appId);
+				facebookUtils = activity.getBean("facebookUtils");
+				facebook = facebookUtils.getFacebook(activity);
 				service = getFacebookService();
 				
-				boolean photos = config.getBooleanProperty(SocializeConfig.FACEBOOK_PHOTOS_ENABLED, false);
 				boolean sso = config.getBooleanProperty(SocializeConfig.FACEBOOK_SSO_ENABLED, true);
 				
 				if(permissions != null && permissions.length > 0) {
-					service.authenticate(sso, photos, permissions);
+					service.authenticate(activity, sso, permissions);
 				}
 				else {
-					service.authenticate(sso, photos);
+					service.authenticate(activity, sso);
 				}
 			}
 			else {
@@ -68,12 +71,12 @@ public class FacebookActivityService {
 	
 	public void onCancel() {
 		if(service != null) {
-			service.cancel();
+			service.cancel(activity);
 		}
 	}
     
     public FacebookService getFacebookService() {
-    	service = new FacebookService(activity, facebook, facebookSessionStore, (AuthProviderListener) listenerHolder.pop("auth"), dialogFactory);
+    	service = new FacebookService(facebook, facebookSessionStore, (AuthProviderListener) listenerHolder.pop("auth"), dialogFactory, logger);
     	return service;
     }
 	
@@ -93,5 +96,9 @@ public class FacebookActivityService {
 	
 	public void setActivity(FacebookActivity activity) {
 		this.activity = activity;
+	}
+
+	public void setLogger(SocializeLogger logger) {
+		this.logger = logger;
 	}
 }

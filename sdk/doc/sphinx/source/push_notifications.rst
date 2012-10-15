@@ -45,7 +45,7 @@ Step 2: Add Configuration to AndroidManifest.xml
 
 The default configuration for Socialize needs to be augmented slightly for push notifications. 
 
-.. note:: Make sure you replace every occurrance of **your_package_name** with the package name of your app!
+.. note:: Make sure you replace every occurrence of **your_package_name** with the package name of your app!
 
 Add the following additional configurations to the **<application.../>** element of your **AndroidManifest.xml**
 
@@ -84,7 +84,7 @@ are indeed being sent.
 
 The simplest way to verify that SmartAlerts are working for your app is to send a test message from the Socialize website.  
 
-This can be found in the dashboard for your app:
+This can be found in the dash board for your app:
 
 .. image:: images/smart_alert.png 
 
@@ -146,7 +146,7 @@ Registering for Google C2DM
 Socialize provides a default quota of SmartAlerts that should satisfy the needs of most users, however if you are experiencing issues with SmartAlerts quota 
 you can always simply register your own C2DM token with Socialize.
 
-Google's Cloud To Device (C2DM) system allows any app developer to register and obtain a token. Configuring your application for SmartAlerts using your own C2DM token is a 3 step process:
+Google's Cloud To Device (C2DM) system allows any app developer to register and obtain a token. Configuring your application for SmartAlerts using your own C2DM token is a 4 step process:
 
 Step 1: Register with Google for C2DM
 ^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^^

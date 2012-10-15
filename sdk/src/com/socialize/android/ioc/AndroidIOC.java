@@ -148,11 +148,20 @@ public class AndroidIOC implements IOCContainer {
 	 */
 	@Override
 	public void setContext(Context context) {
-		container.setContext(context);
+		if(container != null) {
+			container.setContext(context);
+		}
 	}
 
 	@Override
 	public Context getContext() {
 		return container.getContext();
+	}
+
+	@Override
+	public void onContextDestroyed(Context context) {
+		if(container != null) {
+			container.onContextDestroyed(context);
+		}
 	}
 }

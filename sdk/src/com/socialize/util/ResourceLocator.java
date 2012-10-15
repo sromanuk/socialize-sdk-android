@@ -24,10 +24,7 @@ package com.socialize.util;
 import java.io.FileNotFoundException;
 import java.io.IOException;
 import java.io.InputStream;
-
 import android.content.Context;
-import android.util.Log;
-
 import com.socialize.log.SocializeLogger;
 
 /**
@@ -70,6 +67,15 @@ public class ResourceLocator {
 		
 		return in;
 	}
+	
+	public InputStream locateInLocalStorage(Context context, String name) throws IOException {
+		try {
+			return context.openFileInput(name);
+		}
+		catch (FileNotFoundException e) {
+			return null;
+		}
+	}
 
 	public InputStream locateInClassPath(Context context, String name) throws IOException {
 		
@@ -106,6 +112,10 @@ public class ResourceLocator {
 		}
 		
 		if(in == null) {
+			in = locateInLocalStorage(context, name);
+		}
+		
+		if(in == null) {
 			if(logger != null) {
 				logger.error("Could not locate [" +
 						name +
@@ -115,7 +125,7 @@ public class ResourceLocator {
 				FileNotFoundException e = new FileNotFoundException("Could not locate [" +
 						name +
 						"] in any location");
-				Log.e(SocializeLogger.LOG_TAG, e.getMessage(), e);
+				SocializeLogger.e(e.getMessage(), e);
 			}
 		}
 		

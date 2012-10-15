@@ -24,12 +24,10 @@ package com.socialize.ui.action;
 import android.app.Activity;
 import android.content.Context;
 import android.os.Bundle;
-import android.util.Log;
 import android.view.Menu;
 import android.view.View;
 import android.widget.LinearLayout;
 import android.widget.ScrollView;
-
 import com.socialize.Socialize;
 import com.socialize.entity.SocializeAction;
 import com.socialize.log.SocializeLogger;
@@ -79,7 +77,7 @@ public class ActionDetailView extends EntityView {
 			return view;
 		}
 		else {
-			Log.e(SocializeLogger.LOG_TAG, "No user id specified for " + getClass().getSimpleName());
+			SocializeLogger.e("No user id specified for " + getClass().getSimpleName());
 			return null;
 		}		
 	}

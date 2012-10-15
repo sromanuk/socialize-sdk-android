@@ -10,9 +10,11 @@ import com.socialize.android.ioc.IBeanFactory;
 import com.socialize.entity.User;
 import com.socialize.error.SocializeException;
 import com.socialize.listener.user.UserGetListener;
+import com.socialize.log.SocializeLogger;
 import com.socialize.ui.dialog.ProgressDialogFactory;
 import com.socialize.ui.header.SocializeHeader;
 import com.socialize.util.BitmapUtils;
+import com.socialize.util.DisplayUtils;
 import com.socialize.view.BaseView;
 
 public class ProfileLayoutView extends BaseView {
@@ -27,6 +29,7 @@ public class ProfileLayoutView extends BaseView {
 	private ProgressDialog dialog = null;
 	private ProgressDialogFactory progressDialogFactory;
 	private BitmapUtils bitmapUtils;
+	private DisplayUtils displayUtils;
 	
 	public ProfileLayoutView(Activity context, String userId) {
 		this(context);
@@ -48,11 +51,20 @@ public class ProfileLayoutView extends BaseView {
 		setOrientation(LinearLayout.VERTICAL);
 		setLayoutParams(fill);
 		setPadding(0, 0, 0, 0);
-
-		header = profileHeaderFactory.getBean();
+		
+		boolean landscape = false;
+		
+		if(displayUtils != null) {
+			landscape = displayUtils.isLandscape();
+		}
+		       
+		
+		if(!landscape) {
+			header = profileHeaderFactory.getBean();
+			addView(header);
+		}
+		
 		content = profileContentViewFactory.getBean(this);
-
-		addView(header);
 		addView(content);
 	}
 	
@@ -77,13 +89,19 @@ public class ProfileLayoutView extends BaseView {
 			public void onGet(User user) {
 				
 				// Merge the current session user
-				User currentUser = UserUtils.getCurrentUser(getContext());
 				UserSettings settings = UserUtils.getUserSettings(getContext());
 				
-				if(currentUser.getId().equals(user.getId())) {
-					currentUser.update(user);
-					settings.update(user);
-					user = currentUser;
+				try {
+					User currentUser = UserUtils.getCurrentUser(getContext());
+					
+					if(currentUser.getId().equals(user.getId())) {
+						currentUser.update(user);
+						settings.update(user);
+						user = currentUser;
+					}
+				}
+				catch (Exception e) {
+					SocializeLogger.e("Error getting user", e);
 				}
 				
 				// Set the user details into the view elements
@@ -137,5 +155,9 @@ public class ProfileLayoutView extends BaseView {
 
 	public void setBitmapUtils(BitmapUtils bitmapUtils) {
 		this.bitmapUtils = bitmapUtils;
+	}
+
+	public void setDisplayUtils(DisplayUtils displayUtils) {
+		this.displayUtils = displayUtils;
 	}
 }

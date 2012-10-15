@@ -23,25 +23,195 @@ package com.socialize.test.ui.auth;
 
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import android.app.Activity;
+import android.content.Context;
 import android.view.View;
 import com.socialize.ConfigUtils;
 import com.socialize.Socialize;
 import com.socialize.SocializeAccess;
 import com.socialize.SocializeSystem;
+import com.socialize.api.SocializeSession;
+import com.socialize.api.action.ActionOptions;
+import com.socialize.api.action.ShareableActionOptions;
+import com.socialize.api.action.comment.SocializeCommentUtils;
+import com.socialize.api.action.like.SocializeLikeUtils;
+import com.socialize.config.SocializeConfig;
 import com.socialize.ioc.SocializeIOC;
+import com.socialize.networks.SocialNetwork;
 import com.socialize.networks.facebook.FacebookAuthClickListener;
 import com.socialize.networks.facebook.FacebookSignInCell;
 import com.socialize.networks.twitter.TwitterAuthClickListener;
 import com.socialize.networks.twitter.TwitterSignInCell;
-import com.socialize.test.ui.SocializeUIActivityTest;
+import com.socialize.test.SocializeActivityTest;
 import com.socialize.test.ui.util.TestUtils;
+import com.socialize.ui.auth.AuthDialogListener;
 import com.socialize.ui.auth.AuthPanelView;
+import com.socialize.ui.auth.IAuthDialogFactory;
+import com.socialize.ui.share.RememberCell;
 
 /**
  * @author Jason Polites
  *
  */
-public class AuthPanelViewTest extends SocializeUIActivityTest {
+public class AuthPanelViewTest extends SocializeActivityTest {
+	
+	public void testAuthPanelAuthRequiredOnComment() {
+		SocializeCommentUtils commentUtils = new SocializeCommentUtils() {
+			@Override
+			protected boolean isDisplayAuthDialog(Context context, SocializeSession session, ActionOptions options, SocialNetwork... networks) {
+				return true;
+			}
+
+			@Override
+			protected boolean isDisplayShareDialog(Context context, ShareableActionOptions options) {
+				return false;
+			}
+		};
+		
+		IAuthDialogFactory authDialogFactory = new IAuthDialogFactory() {
+			@Override
+			public void show(Context context, AuthDialogListener listener, boolean required) {
+				addResult(0, required);
+			}
+			
+			@Override
+			public void preload(Context context) {}
+		};
+		
+		SocializeConfig config = new SocializeConfig();
+		
+		commentUtils.setAuthDialogFactory(authDialogFactory);
+		commentUtils.setConfig(config);
+		
+		config.setProperty(SocializeConfig.SOCIALIZE_ALLOW_ANON, String.valueOf(false));
+		config.setProperty(SocializeConfig.SOCIALIZE_ALLOW_ANON_COMMENT, String.valueOf(true));
+		
+		commentUtils.addComment(null, null,null, null, null);
+		
+		Boolean result = getResult(0);
+		
+		assertNotNull(result);
+		assertTrue(result.booleanValue());
+		
+		
+		config.setProperty(SocializeConfig.SOCIALIZE_ALLOW_ANON, String.valueOf(false));
+		config.setProperty(SocializeConfig.SOCIALIZE_ALLOW_ANON_COMMENT, String.valueOf(false));
+		
+		commentUtils.addComment(null, null,null, null, null);
+		
+		result = getResult(0);
+		
+		assertNotNull(result);
+		assertTrue(result.booleanValue());
+		
+		
+		
+		config.setProperty(SocializeConfig.SOCIALIZE_ALLOW_ANON, String.valueOf(true));
+		config.setProperty(SocializeConfig.SOCIALIZE_ALLOW_ANON_COMMENT, String.valueOf(true));
+		
+		commentUtils.addComment(null, null,null, null, null);
+		
+		result = getResult(0);
+		
+		assertNotNull(result);
+		assertFalse(result.booleanValue());
+		
+		
+		config.setProperty(SocializeConfig.SOCIALIZE_ALLOW_ANON, String.valueOf(true));
+		config.setProperty(SocializeConfig.SOCIALIZE_ALLOW_ANON_COMMENT, String.valueOf(false));
+		
+		commentUtils.addComment(null, null,null, null, null);
+		
+		result = getResult(0);
+		
+		assertNotNull(result);
+		assertTrue(result.booleanValue());				
+	}
+	
+	public void testAuthPanelAuthRequiredOnLike() {
+		SocializeLikeUtils likeUtils = new SocializeLikeUtils() {
+			@Override
+			protected boolean isDisplayAuthDialog(Context context, SocializeSession session, ActionOptions options, SocialNetwork... networks) {
+				return true;
+			}
+
+			@Override
+			protected boolean isDisplayShareDialog(Context context, ShareableActionOptions options) {
+				return false;
+			}
+		};
+		
+		IAuthDialogFactory authDialogFactory = new IAuthDialogFactory() {
+			@Override
+			public void show(Context context, AuthDialogListener listener, boolean required) {
+				addResult(0, required);
+			}
+			
+			@Override
+			public void preload(Context context) {}
+		};
+		
+		SocializeConfig config = new SocializeConfig();
+		
+		likeUtils.setAuthDialogFactory(authDialogFactory);
+		likeUtils.setConfig(config);
+		
+		config.setProperty(SocializeConfig.SOCIALIZE_ALLOW_ANON, String.valueOf(false));
+		
+		likeUtils.like(null, null,null, null);
+		
+		Boolean result = getResult(0);
+		
+		assertNotNull(result);
+		assertTrue(result.booleanValue());
+		
+		
+		config.setProperty(SocializeConfig.SOCIALIZE_ALLOW_ANON, String.valueOf(true));
+		
+		likeUtils.like(null, null,null, null);
+		
+		result = getResult(0);
+		
+		assertNotNull(result);
+		assertFalse(result.booleanValue());
+		
+	}
+
+	public void testAuthPanelUI00() throws Throwable {
+		doAuthPanelUITest(true, true, View.GONE);
+	}
+	
+	public void testAuthPanelUI01() throws Throwable {
+		doAuthPanelUITest(true, false, View.VISIBLE);
+	}
+	
+	public void testAuthPanelUI02() throws Throwable {
+		doAuthPanelUITest(false, true, View.GONE);
+	}
+	
+	public void testAuthPanelUI03() throws Throwable {
+		doAuthPanelUITest(false, false, View.GONE);
+	}
+	
+	private void doAuthPanelUITest(boolean neverAuth, boolean authRequired, int expectedVisibility) {
+		SocializeConfig config = ConfigUtils.getConfig(getContext());
+		config.setProperty(SocializeConfig.SOCIALIZE_ALLOW_NEVER_AUTH, String.valueOf(neverAuth));
+		
+		AuthPanelView view = SocializeAccess.getBean("authPanelView");
+		
+		view.setAuthRequired(authRequired);
+		
+		RememberCell remember = TestUtils.findView(view, RememberCell.class);
+	
+		
+		if(neverAuth) {
+			assertNotNull(remember);
+			assertEquals(remember.getVisibility(), expectedVisibility);
+		}
+		else {
+			assertNull(remember);
+		}
+	}
 
 	public void testAuthPanelViewRenderAndClick() throws Throwable {
 		
@@ -74,14 +244,15 @@ public class AuthPanelViewTest extends SocializeUIActivityTest {
 		
 		final AuthPanelView view = SocializeAccess.getBean("authPanelView");
 		
-		
 		final CountDownLatch latch0 = new CountDownLatch(1);
 		final CountDownLatch latch1 = new CountDownLatch(1);
+		
+		final Activity activity = TestUtils.getActivity(this);
 		
 		runTestOnUiThread(new Runnable() {
 			@Override
 			public void run() {
-				getActivity().setContentView(view);
+				activity.setContentView(view);
 				latch0.countDown();
 			}
 		});
@@ -110,12 +281,5 @@ public class AuthPanelViewTest extends SocializeUIActivityTest {
 		assertTrue((Boolean)getResult(1));
 		assertTrue((Boolean)getResult(2));
 		assertTrue((Boolean)getResult(3));
-	}
-	
-	@Override
-	protected void tearDown() throws Exception {
-		SocializeIOC.unregisterStub("facebookAuthClickListener");
-		SocializeIOC.unregisterStub("twitterAuthClickListener");
-		super.tearDown();
 	}
 }

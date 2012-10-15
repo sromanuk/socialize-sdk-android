@@ -23,7 +23,6 @@ package com.socialize.test.ui;
 
 import java.util.ArrayList;
 import android.content.Context;
-import android.test.ActivityInstrumentationTestCase2;
 import android.view.View;
 import android.view.inputmethod.InputMethodManager;
 import android.widget.EditText;
@@ -31,12 +30,13 @@ import com.jayway.android.robotium.solo.Solo;
 import com.socialize.Socialize;
 import com.socialize.SocializeService;
 import com.socialize.sample.ui.SampleActivity2;
+import com.socialize.test.SocializeManagedActivityTest;
 import com.socialize.test.ui.util.TestUtils;
 
 /**
  * @author Jason Polites
  */
-public abstract class SocializeUIRobotiumTest extends ActivityInstrumentationTestCase2<SampleActivity2> {
+public abstract class SocializeUIRobotiumTest extends SocializeManagedActivityTest<SampleActivity2> {
 
 	public static final int DEFAULT_TIMEOUT_SECONDS = 100;
 	public static final String DEFAULT_ENTITY_URL = "http://socialize.integration.tests.com?somekey=somevalue&anotherkey=anothervalue";
@@ -47,14 +47,13 @@ public abstract class SocializeUIRobotiumTest extends ActivityInstrumentationTes
 	public static final int BTN_FACEBOOK_SSO = 0;
 	public static final int BTN_MOCK_FACEBOOK = 1;
 	public static final int BTN_MOCK_SOCIALIZE = 2;
-//	public static final int BTN_NOTIFICATIONS_ENABLED = 3;
-	
 	
 	public static final String BTN_CLEAR_CACHE = "Clear Auth Cache";
 	public static final String BTN_SHOW_COMMENTS = "Show Comments";
 	
 	
 	public static final String BTN_NOTIFICATIONS_ENABLED = "Notifications Enabled";
+	public static final String BTN_LOCATION_ENABLED = "Location Enabled";
 	
 	public static final String BTN_SHOW_ACTION_BAR_AUTO = "Show Action Bar (auto)";
 	public static final String BTN_SHOW_ACTION_BAR_MANUAL = "Show Action Bar (manual)";
@@ -74,8 +73,8 @@ public abstract class SocializeUIRobotiumTest extends ActivityInstrumentationTes
 	}
 
 	public void setUp() throws Exception {
-		imm = (InputMethodManager)getActivity().getSystemService(Context.INPUT_METHOD_SERVICE);
-		robotium = new Solo(getInstrumentation(), getActivity());
+		imm = (InputMethodManager)TestUtils.getActivity(this).getSystemService(Context.INPUT_METHOD_SERVICE);
+		robotium = new Solo(getInstrumentation(), TestUtils.getActivity(this));
 		robotium.waitForActivity("SampleActivity", 5000);
 		TestUtils.setUp(this);
 		hideKeyboard();
@@ -91,7 +90,7 @@ public abstract class SocializeUIRobotiumTest extends ActivityInstrumentationTes
 			e.printStackTrace();
 		}
 		
-		TestUtils.tearDown();
+		TestUtils.tearDown(this);
 		
 		super.tearDown();
 	}	
@@ -118,11 +117,17 @@ public abstract class SocializeUIRobotiumTest extends ActivityInstrumentationTes
 		if(on) {
 			TestUtils.clickOnButton(BTN_NOTIFICATIONS_ENABLED);
 		}
-	}		
+	}	
+	
+	protected void toggleLocationEnabled(boolean on) {
+		if(on) {
+			TestUtils.clickOnButton(BTN_LOCATION_ENABLED);
+		}
+	}			
 	
 	protected void clearAuthCache() {
 		SocializeService socialize = Socialize.getSocialize();
-		socialize.clearSessionCache(getActivity());
+		socialize.clearSessionCache(TestUtils.getActivity(this));
 		assertNull(socialize.getSession());
 	}
 	
@@ -218,7 +223,7 @@ public abstract class SocializeUIRobotiumTest extends ActivityInstrumentationTes
 			}
 		}
 		return null;		
-//		return TestUtils.findView(getActivity(), viewClass, 20000);
+//		return TestUtils.findView(TestUtils.getActivity(this), viewClass, 20000);
 	}
 
 }

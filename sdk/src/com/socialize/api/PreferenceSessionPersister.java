@@ -26,7 +26,6 @@ import org.json.JSONObject;
 import android.content.Context;
 import android.content.SharedPreferences;
 import android.content.SharedPreferences.Editor;
-import android.util.Log;
 import com.socialize.Socialize;
 import com.socialize.auth.AuthProviderType;
 import com.socialize.auth.DefaultUserProviderCredentials;
@@ -79,6 +78,30 @@ public class PreferenceSessionPersister implements SocializeSessionPersister {
 		editor.commit();
 	}
 	
+	@Override
+	public void saveUserSettingsAsync(final Context context, final UserSettings settings) {
+		new Thread() {
+			@Override
+			public void run() {
+				SharedPreferences prefs = context.getSharedPreferences(PREFERENCES, Context.MODE_PRIVATE);
+				Editor editor = prefs.edit();
+				try {
+					String userJSON = userSettingsFactory.toJSON(settings).toString();
+					editor.putString("user-settings", userJSON);
+					editor.commit();
+				}
+				catch (JSONException e) {
+					if(logger != null) {
+						logger.error("Failed to serialize user settings object", e);
+					}
+					else {
+						SocializeLogger.e("Failed to serialize user settings object", e);
+					}
+				}
+			}
+		}.start();
+	}
+
 	public synchronized void saveUser(Editor editor, User user, UserSettings userSettings) {
 		if(user != null) {
 			try {
@@ -90,7 +113,7 @@ public class PreferenceSessionPersister implements SocializeSessionPersister {
 					logger.error("Failed to serialize user object", e);
 				}
 				else {
-					Log.e(SocializeLogger.LOG_TAG, "Failed to serialize user object", e);
+					SocializeLogger.e("Failed to serialize user object", e);
 				}
 			}
 			
@@ -108,7 +131,7 @@ public class PreferenceSessionPersister implements SocializeSessionPersister {
 					logger.error("Failed to serialize user settings object", e);
 				}
 				else {
-					Log.e(SocializeLogger.LOG_TAG, "Failed to serialize user settings object", e);
+					SocializeLogger.e("Failed to serialize user settings object", e);
 				}
 			}
 		}			
@@ -302,7 +325,7 @@ public class PreferenceSessionPersister implements SocializeSessionPersister {
 					logger.error("Failed to deserialize user object", e);
 				}
 				else {
-					Log.e(SocializeLogger.LOG_TAG, "Failed to deserialize user object", e);
+					SocializeLogger.e("Failed to deserialize user object", e);
 				}
 			}
 		}
@@ -320,7 +343,7 @@ public class PreferenceSessionPersister implements SocializeSessionPersister {
 					logger.error("Failed to deserialize user settings object", e);
 				}
 				else {
-					Log.e(SocializeLogger.LOG_TAG, "Failed to deserialize user settings object", e);
+					SocializeLogger.e("Failed to deserialize user settings object", e);
 				}
 			}
 		}

@@ -29,12 +29,12 @@ import com.socialize.api.action.share.ShareUtilsProxy;
 import com.socialize.api.action.share.SocialNetworkDialogListener;
 import com.socialize.api.action.share.SocialNetworkShareListener;
 import com.socialize.entity.Entity;
+import com.socialize.entity.User;
 import com.socialize.listener.share.ShareAddListener;
 import com.socialize.listener.share.ShareGetListener;
 import com.socialize.listener.share.ShareListListener;
 import com.socialize.networks.SocialNetwork;
 import com.socialize.ui.auth.AuthDialogListener;
-import com.socialize.ui.share.ShareDialogListener;
 
 
 /**
@@ -74,14 +74,19 @@ public class ShareUtils {
 	public static final int MORE_OPTIONS = 1<<5;
 	
 	/**
+	 * Used to instruct the dialog to display the Google Plus option. 
+	 */
+	public static final int GOOGLE_PLUS = 1<<6;
+	
+	/**
 	 * Displays only Social Network options.
 	 */
-	public static final int SOCIAL = FACEBOOK|TWITTER;
+	public static final int SOCIAL = FACEBOOK|TWITTER|GOOGLE_PLUS;
 	
 	/**
 	 * The default display settings for the share dialog.
 	 */
-	public static final int DEFAULT = EMAIL|SMS|FACEBOOK|TWITTER|MORE_OPTIONS;
+	public static final int DEFAULT = EMAIL|SMS|FACEBOOK|TWITTER|GOOGLE_PLUS|MORE_OPTIONS;
 	
 	static ShareUtilsProxy proxy;
 	
@@ -94,8 +99,8 @@ public class ShareUtils {
 	
 	/**
 	 * Returns the default sharing options for the user.
-	 * @param context
-	 * @return
+	 * @param context The current context.
+	 * @return The default sharing options for the user.
 	 */
 	public static ShareOptions getUserShareOptions(Context context) {
 		return proxy.getUserShareOptions(context);
@@ -109,6 +114,22 @@ public class ShareUtils {
 	public static void showLinkDialog (Activity context, AuthDialogListener listener) {
 		proxy.showLinkDialog(context, listener);
 	}
+	
+	/**
+	 * Pre-loads the share dialog in the background to improve load speed and end user responsiveness.
+	 * @param context The current context.
+	 */
+	public static void preloadShareDialog (Activity context) {
+		proxy.preloadShareDialog(context);
+	};	
+	
+	/**
+	 * Pre-loads the link dialog in the background to improve load speed and end user responsiveness.
+	 * @param context The current context.
+	 */
+	public static void preloadLinkDialog (Activity context) {
+		proxy.preloadLinkDialog(context);
+	};	
 	
 	/**
 	 * Displays the default share dialog.  In most cases this is the simplest version to use.
@@ -125,8 +146,8 @@ public class ShareUtils {
 	 * @param entity The entity being shared.
 	 * @param listener A listener to handle events on the dialog.
 	 */
-	public static void showShareDialog (Activity context, Entity entity, ShareDialogListener listener) {
-		proxy.showShareDialog(context, entity, DEFAULT, null, listener);
+	public static void showShareDialog (Activity context, Entity entity, SocialNetworkDialogListener listener) {
+		proxy.showShareDialog(context, entity, DEFAULT, listener, listener);
 	};	
 	
 	/**
@@ -150,6 +171,17 @@ public class ShareUtils {
 	 */
 	public static void shareViaEmail(Activity context, Entity entity, ShareAddListener listener) {
 		proxy.shareViaEmail(context, entity, listener);
+	};
+	
+	
+	/**
+	 * Shares the given entity via email.  This method with launch the Google+ application on the device.
+	 * @param context The current context.
+	 * @param entity The entity being shared.
+	 * @param listener A listener to handle events.
+	 */
+	public static void shareViaGooglePlus(Activity context, Entity entity, ShareAddListener listener) {
+		proxy.shareViaGooglePlus(context, entity, listener);
 	};
 	
 	/**
@@ -206,13 +238,13 @@ public class ShareUtils {
 	/**
 	 * Retrieves all share events performed by the given user.
 	 * @param context The current context.
-	 * @param userId The ID of the user who performed the share(s).
+	 * @param user The user who performed the share(s).
 	 * @param start The start index for the result set (0 indexed).
 	 * @param end The end index for the result set.
 	 * @param listener A listener to handle the result.
 	 */
-	public static void getSharesByUser (Activity context, long userId, int start, int end, ShareListListener listener) {
-		proxy.getSharesByUser(context, userId, start, end, listener);
+	public static void getSharesByUser (Activity context, User user, int start, int end, ShareListListener listener) {
+		proxy.getSharesByUser(context, user, start, end, listener);
 	};
 	
 	/**
@@ -226,6 +258,17 @@ public class ShareUtils {
 	public static void getSharesByEntity (Activity context, String entityKey, int start, int end, ShareListListener listener) {
 		proxy.getSharesByEntity(context, entityKey, start, end, listener);
 	};
+	
+	/**
+	 * Retrieves all share events across all entities.
+	 * @param context The current context.
+	 * @param start The start index for the result set (0 indexed).
+	 * @param end The end index for the result set.
+	 * @param listener A listener to handle the result.
+	 */
+	public static void getSharesByApplication (Activity context, int start, int end, ShareListListener listener) {
+		proxy.getSharesByApplication(context, start, end, listener);
+	};	
 	
 	/**
 	 * Creates a simple Socialize Share object.  

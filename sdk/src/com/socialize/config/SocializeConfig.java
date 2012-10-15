@@ -26,9 +26,8 @@ import java.io.InputStream;
 import java.util.Map.Entry;
 import java.util.Properties;
 import java.util.Set;
-
 import android.content.Context;
-
+import com.socialize.log.ExternalLogger;
 import com.socialize.log.SocializeLogger;
 import com.socialize.util.ResourceLocator;
 import com.socialize.util.StringUtils;
@@ -55,27 +54,47 @@ public class SocializeConfig {
 	
 	public static final String SOCIALIZE_C2DM_SENDER_ID = "socialize.c2dm.sender.id";
 	
-	@Deprecated
-	public static final String SOCIALIZE_USE_ACTION_WEBVIEW = "socialize.use.action.webview";
-	
-	@Deprecated
-	public static final String SOCIALIZE_BRANDING_ENABLED = "socialize.branding.enabled";
-	
 	public static final String SOCIALIZE_ENTITY_LOADER = "socialize.entity.loader";
+	
+	public static final String SOCIALIZE_LOCATION_ENABLED = "socialize.location.enabled";
 	
 	public static final String SOCIALIZE_REQUIRE_AUTH = "socialize.require.auth";
 	
+	public static final String SOCIALIZE_EXTERNAL_LOGS_ENABLED = "socialize.external.logs.enabled";
+	
+	@Deprecated
+	public static final String SOCIALIZE_REQUIRE_SHARE = "socialize.require.share";
+	
 	public static final String SOCIALIZE_ALLOW_ANON = "socialize.allow.anon";
 	
+	public static final String SOCIALIZE_ALLOW_ANON_COMMENT = "socialize.allow.anon.comments";
+	
+	public static final String SOCIALIZE_ALLOW_NEVER_AUTH = "socialize.allow.never.auth";
+	
+	public static final String SOCIALIZE_EVENTS_AUTH_ENABLED = "socialize.events.auth.enabled";
+	
+	public static final String SOCIALIZE_EVENTS_SHARE_ENABLED = "socialize.events.share.enabled";
+	
 	public static final String SOCIALIZE_SHOW_COMMENT_LIST_ON_NOTIFY = "socialize.comments.on.notify";
+	
+	public static final String SOCIALIZE_SHOW_COMMENT_HEADER = "socialize.show.comment.header";
+	
+	public static final String SOCIALIZE_PROMPT_SHARE = "socialize.prompt.share";
+	
+	public static final String GOOGLE_PLUS_ENABLED = "googleplus.enabled";
 	
 	/**
 	 * true if Single Sign On is enabled.  Default is true.
 	 */
 	public static final String FACEBOOK_SSO_ENABLED = "facebook.sso.enabled";
-	public static final String FACEBOOK_PHOTOS_ENABLED = "facebook.photos.enabled";
-	public static final String FACEBOOK_APP_ID = "facebook.app.id";
 	
+	public static final String FACEBOOK_OG_USE_INBUILT_LIKE = "facebook.og.like.enabled";
+	
+	@Deprecated
+	public static final String FACEBOOK_PHOTOS_ENABLED = "facebook.photos.enabled";
+	
+	public static final String FACEBOOK_APP_ID = "facebook.app.id";
+
 	@Deprecated
 	public static final String FACEBOOK_USER_ID = "facebook.user.id";
 	
@@ -171,6 +190,7 @@ public class SocializeConfig {
 				}
 				catch (IOException ignore) {
 					// No config.. eek!
+					ignore.printStackTrace();
 				}
 				finally {
 					if(in != null) {
@@ -181,7 +201,7 @@ public class SocializeConfig {
 				if(override) {
 					// Look for override
 					try {
-						in = resourceLocator.locateInAssets(context, propertiesFileName);
+						in = resourceLocator.locate(context, propertiesFileName);
 						
 						if(in != null) {
 							Properties overrideProps = createProperties();
@@ -256,6 +276,20 @@ public class SocializeConfig {
 	 */
 	public String getProperty(String key) {
 		return (properties == null) ? null : properties.getProperty(key);
+	}
+	
+	public String getProperty(String key, String defaultValue) {
+		if(properties == null) {
+			return defaultValue;
+		}
+		
+		String value = properties.getProperty(key);
+		
+		if(StringUtils.isEmpty(value)) {
+			return defaultValue;
+		}
+		
+		return value;
 	}	
 	
 	public void destroy() {
@@ -278,11 +312,6 @@ public class SocializeConfig {
 			return Boolean.parseBoolean(val);
 		}
 		return defaultValue;
-	}
-	
-	@Deprecated
-	public boolean isBrandingEnabled() {
-		return getBooleanProperty(SOCIALIZE_BRANDING_ENABLED, true);
 	}
 	
 	/**
@@ -324,16 +353,66 @@ public class SocializeConfig {
 		setProperty(SocializeConfig.FACEBOOK_USER_TOKEN, token);
 	}
 	
-	public boolean isAllowAnonymousUser() {
+	@Deprecated
+	public boolean isShareRequired() {
+		return getBooleanProperty(SOCIALIZE_REQUIRE_SHARE, getBooleanProperty(SOCIALIZE_ALLOW_ANON, false));
+	}
+	
+	public boolean isAllowSkipAuthOnComments() {
+		return getBooleanProperty(SOCIALIZE_ALLOW_ANON_COMMENT, false);
+	}
+	
+	public boolean isDiagnosticLoggingEnabled() {
+		return getBooleanProperty(SOCIALIZE_EXTERNAL_LOGS_ENABLED, false);
+	}
+	
+	public void setDiagnosticLoggingEnabled(Context context, boolean enabled) {
+		setProperty(SOCIALIZE_EXTERNAL_LOGS_ENABLED, String.valueOf(enabled));
+		if(logger != null) {
+			if(enabled) {
+				logger.destroy();
+				logger.init(context, this);
+			}
+			else {
+				ExternalLogger externalLogger = logger.getExternalLogger();
+				if(externalLogger != null) {
+					externalLogger.destroy();
+				}
+				logger.setExternalLogger(null);
+			}
+		}
+	}
+	
+	public boolean isAllowSkipAuthOnAllActions() {
 		return getBooleanProperty(SOCIALIZE_ALLOW_ANON, false);
+	}
+	
+	public boolean isAllowNeverAuth() {
+		return getBooleanProperty(SOCIALIZE_ALLOW_NEVER_AUTH, false);
+	}
+	
+	public boolean isShowCommentHeader() {
+		return getBooleanProperty(SOCIALIZE_SHOW_COMMENT_HEADER, true);
+	}
+
+	public boolean isOGLike() {
+		return getBooleanProperty(FACEBOOK_OG_USE_INBUILT_LIKE, false);
+	}
+	
+	public boolean isGooglePlusEnabled() {
+		return getBooleanProperty(GOOGLE_PLUS_ENABLED, true);
 	}
 	
 	public boolean isNotificationsEnabled() {
 		return getBooleanProperty(SOCIALIZE_NOTIFICATIONS_ENABLED, true);
 	}
 	
-	public boolean isAuthRequired() {
+	public boolean isPromptForAuth() {
 		return getBooleanProperty(SOCIALIZE_REQUIRE_AUTH, true);
+	}
+	
+	public boolean isPromptForShare() {
+		return getBooleanProperty(SOCIALIZE_PROMPT_SHARE, true);
 	}
 	
 	/**

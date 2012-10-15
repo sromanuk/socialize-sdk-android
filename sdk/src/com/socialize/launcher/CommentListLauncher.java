@@ -23,9 +23,8 @@ package com.socialize.launcher;
 
 import android.app.Activity;
 import android.os.Bundle;
-import android.util.Log;
+import com.socialize.CommentUtils;
 import com.socialize.Socialize;
-import com.socialize.SocializeService;
 import com.socialize.api.SocializeSession;
 import com.socialize.api.action.ActionType;
 import com.socialize.api.action.activity.ActivitySystem;
@@ -73,7 +72,7 @@ public class CommentListLauncher extends BaseLauncher {
 				SocializeAction action = activitySystem.getAction(session, id, type);
 				
 				if(action != null) {
-					getSocialize().showCommentView(context, action.getEntity());
+					CommentUtils.showCommentView(context, action.getEntity());
 					return true;
 				}
 				else {
@@ -98,7 +97,7 @@ public class CommentListLauncher extends BaseLauncher {
 			logger.error(msg, e);
 		}
 		else {
-			Log.e(SocializeLogger.LOG_TAG, e.getMessage(), e);
+			SocializeLogger.e(e.getMessage(), e);
 		}
 	}		
 	
@@ -109,11 +108,6 @@ public class CommentListLauncher extends BaseLauncher {
 		else {
 			System.err.println(msg);
 		}
-	}
-	
-	// Mockable
-	protected SocializeService getSocialize() {
-		return Socialize.getSocialize();
 	}
 
 	public void setEntityLoaderUtils(EntityLoaderUtils entityLoaderUtils) {

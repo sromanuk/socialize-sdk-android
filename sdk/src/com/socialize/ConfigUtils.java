@@ -34,6 +34,7 @@ import com.socialize.config.SocializeConfig;
 public class ConfigUtils {
 	
 	static ConfigUtilsProxy proxy;
+	static SocializeConfig preInitConfig = new SocializeConfig();
 	
 	static {
 		proxy = (ConfigUtilsProxy) Proxy.newProxyInstance(
@@ -45,9 +46,17 @@ public class ConfigUtils {
 	/**
 	 * Returns the internal Socialize configuration object.
 	 * @param context The current context.
-	 * @return
+	 * @return The global configuration object which can be used to programmatically set config.
 	 */
 	public static SocializeConfig getConfig(Context context) {
 		return proxy.getConfig(context);
+	}
+
+	/**
+	 * Returns a config object that is valid prior to init, but not valid thereafter.
+	 * @return
+	 */
+	public static SocializeConfig getPreInitConfig() {
+		return preInitConfig;
 	}
 }

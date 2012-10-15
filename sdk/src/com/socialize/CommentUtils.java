@@ -51,8 +51,8 @@ public class CommentUtils {
 	
 	/**
 	 * Returns the default sharing options for the user.
-	 * @param context
-	 * @return
+	 * @param context The current context.
+	 * @return The default sharing options for the user.
 	 */
 	public static CommentOptions getUserCommentOptions(Context context) {
 		return proxy.getUserCommentOptions(context);
@@ -127,13 +127,24 @@ public class CommentUtils {
 	}
 	
 	/**
+	 * Retrieves all comments across all entities.
+	 * @param context The current context.
+	 * @param start The start index for pagination (from 0).
+	 * @param end The end index for pagination.
+	 * @param listener A listener to handle the result.
+	 */
+	public static void getCommentsByApplication (Activity context, int start, int end, CommentListListener listener) {
+		proxy.getCommentsByApplication(context, start, end, listener);
+	}
+	
+	/**
 	 * Shows the comments for an entity.
 	 * @param context
 	 * @param entity
 	 * @param listener A listener to handle the result.
 	 */
 	public static void showCommentView(Activity context, Entity entity, OnCommentViewActionListener listener) {
-		Socialize.getSocialize().showCommentView(context, entity, listener);
+		proxy.showCommentView(context, entity, listener);
 	}
 
 	/**
@@ -142,6 +153,6 @@ public class CommentUtils {
 	 * @param entity
 	 */
 	public static void showCommentView(Activity context, Entity entity) {
-		Socialize.getSocialize().showCommentView(context, entity);
+		proxy.showCommentView(context, entity);
 	}
 }

@@ -3,18 +3,18 @@ package com.socialize.ui.comment;
 import java.util.List;
 import android.app.ProgressDialog;
 import android.content.Context;
-import android.util.Log;
 import android.view.View;
 import android.view.ViewGroup;
 import android.widget.LinearLayout;
 import android.widget.RelativeLayout;
-import com.socialize.CommentUtils;
 import com.socialize.ConfigUtils;
-import com.socialize.Socialize;
-import com.socialize.SubscriptionUtils;
 import com.socialize.android.ioc.IBeanFactory;
 import com.socialize.api.SocializeSession;
 import com.socialize.api.action.comment.CommentOptions;
+import com.socialize.api.action.comment.CommentUtilsProxy;
+import com.socialize.api.action.comment.SubscriptionUtilsProxy;
+import com.socialize.api.action.user.UserUtilsProxy;
+import com.socialize.config.SocializeConfig;
 import com.socialize.entity.Comment;
 import com.socialize.entity.Entity;
 import com.socialize.entity.ListResult;
@@ -23,7 +23,7 @@ import com.socialize.entity.User;
 import com.socialize.error.SocializeException;
 import com.socialize.listener.comment.CommentAddListener;
 import com.socialize.listener.comment.CommentListListener;
-import com.socialize.listener.subscription.SubscriptionGetListener;
+import com.socialize.listener.subscription.SubscriptionCheckListener;
 import com.socialize.listener.subscription.SubscriptionResultListener;
 import com.socialize.log.SocializeLogger;
 import com.socialize.notifications.SubscriptionType;
@@ -51,6 +51,8 @@ public class CommentListView extends BaseView {
 	private CommentAdapter commentAdapter;
 	private boolean loading = true; // Default to true
 	
+	private boolean headerDisplayed = true;
+
 	private Entity entity;
 	
 	private int startIndex = 0;
@@ -58,11 +60,14 @@ public class CommentListView extends BaseView {
 	
 	private SocializeLogger logger;
 	private SimpleDialogFactory<ProgressDialog> progressDialogFactory;
-//	private SimpleDialogFactory<AlertDialog> alertDialogFactory;
 	private Drawables drawables;
 	private AppUtils appUtils;
 	private DisplayUtils displayUtils;
+	private CommentUtilsProxy commentUtils;
+	private SubscriptionUtilsProxy subscriptionUtils;
+	private UserUtilsProxy userUtils;
 	private ProgressDialog dialog = null;
+	private SocializeConfig config;
 	
 	private IBeanFactory<SocializeHeader> commentHeaderFactory;
 	private IBeanFactory<CommentEditField> commentEditFieldFactory;
@@ -88,9 +93,8 @@ public class CommentListView extends BaseView {
 	
 	private OnCommentViewActionListener onCommentViewActionListener;
 	
-	public CommentListView(Context context, Entity entity) {
+	public CommentListView(Context context) {
 		super(context);
-		this.entity = entity;
 	}
 	
 	public void init() {
@@ -101,6 +105,8 @@ public class CommentListView extends BaseView {
 		setLayoutParams(fill);
 		setBackgroundDrawable(drawables.getDrawable("crosshatch.png", true, true, true));
 		setPadding(0, 0, 0, 0);
+		
+		boolean landscape = displayUtils.isLandscape();
 		
 		iconSize = displayUtils.getDIP(iconSize);
 		
@@ -144,7 +150,10 @@ public class CommentListView extends BaseView {
 		middle.setLayoutParams(middleParams);
 		sliderAnchor.setLayoutParams(bottomParams);
 
-		header = commentHeaderFactory.getBean();
+		if(!landscape && config.isShowCommentHeader() && headerDisplayed) {
+			header = commentHeaderFactory.getBean();
+		}
+		
 		commentEntryField = commentEditFieldFactory.getBean();
 		content = commentContentViewFactory.getBean();
 		
@@ -164,7 +173,7 @@ public class CommentListView extends BaseView {
 				}
 			});
 			
-			UserSettings user = Socialize.getSocialize().getSession().getUserSettings();
+			UserSettings user = userUtils.getUserSettings(getContext());
 			
 			if(user.isNotificationsEnabled()) {
 				notifyBox.setVisibility(View.VISIBLE);
@@ -179,7 +188,10 @@ public class CommentListView extends BaseView {
 		content.setListAdapter(commentAdapter);
 		content.setScrollListener(getCommentScrollListener());
 
-		top.addView(header);
+		if(header != null) {
+			top.addView(header);
+		}
+		
 		middle.addView(content);
 		
 		sliderAnchor.addView(commentEntryField);
@@ -213,7 +225,7 @@ public class CommentListView extends BaseView {
 	}
 	
 	protected CommentAddButtonListener getCommentAddButtonListener() {
-		return new CommentAddButtonListener(getContext(), new CommentButtonCallback() {
+		return new CommentAddButtonListener(new CommentButtonCallback() {
 			
 			@Override
 			public void onError(Context context, SocializeException e) {
@@ -243,7 +255,7 @@ public class CommentListView extends BaseView {
 				options.setShowAuthDialog(true);
 				options.setShowShareDialog(true);
 				
-				CommentUtils.addComment(CommentListView.this.getActivity(), entity, text, options, getCommentAddListener(subscribe));
+				commentUtils.addComment(CommentListView.this.getActivity(), entity, text, options, getCommentAddListener(subscribe));
 				
 				// Won't persist.. but that's ok.
 				SocializeSession session = getSocialize().getSession();
@@ -291,7 +303,7 @@ public class CommentListView extends BaseView {
 				commentAdapter.setTotalCount(commentAdapter.getTotalCount() + 1);
 				commentAdapter.notifyDataSetChanged();
 				
-				header.setText(commentAdapter.getTotalCount() + " Comments");
+				setHeaderText();
 				
 				content.scrollToTop();
 				
@@ -343,7 +355,7 @@ public class CommentListView extends BaseView {
 
 		if(update || comments == null || comments.size() == 0) {
 			
-			CommentUtils.getCommentsByEntity(getActivity(), entity.getKey(), 
+			commentUtils.getCommentsByEntity(getActivity(), entity.getKey(), 
 					startIndex,
 					endIndex, new CommentListListener() {
 
@@ -368,11 +380,13 @@ public class CommentListView extends BaseView {
 					
 					if(entities != null) {
 						int totalCount = entities.getTotalCount();
-						header.setText(totalCount + " Comments");
+						
 						List<Comment> items = entities.getItems();
 						preLoadImages(items);
 						commentAdapter.setComments(items);
 						commentAdapter.setTotalCount(totalCount);
+						
+						setHeaderText();
 
 						if(totalCount <= endIndex) {
 							commentAdapter.setLast(true);
@@ -398,7 +412,7 @@ public class CommentListView extends BaseView {
 		}
 		else {
 			content.showList();
-			header.setText(commentAdapter.getTotalCount() + " Comments");
+			setHeaderText();
 			commentAdapter.notifyDataSetChanged();
 			if(dialog != null) {
 				dialog.dismiss();
@@ -416,6 +430,18 @@ public class CommentListView extends BaseView {
 	protected Comment newComment() {
 		return new Comment();
 	}
+	
+	protected void setHeaderText() {
+		if(header != null) {
+			String name = entity.getName();
+			if(StringUtils.isEmpty(name)) {
+				header.setText(commentAdapter.getTotalCount() + " Comments");
+			}
+			else {
+				header.setText(name + " (" + commentAdapter.getTotalCount() + ")");
+			}
+		}	
+	}
 
 	protected void doNotificationStatusSave() {
 		
@@ -424,7 +450,7 @@ public class CommentListView extends BaseView {
 		
 		if(notifyBox.isChecked()) {
 			
-			SubscriptionUtils.subscribe(getActivity(), entity, SubscriptionType.NEW_COMMENTS, new SubscriptionResultListener() {
+			subscriptionUtils.subscribe(getActivity(), entity, SubscriptionType.NEW_COMMENTS, new SubscriptionResultListener() {
 				@Override
 				public void onError(SocializeException error) {
 					showError(getContext(), error);
@@ -442,7 +468,7 @@ public class CommentListView extends BaseView {
 			});
 		}
 		else {
-			SubscriptionUtils.unsubscribe(getActivity(), entity, SubscriptionType.NEW_COMMENTS, new SubscriptionResultListener() {
+			subscriptionUtils.unsubscribe(getActivity(), entity, SubscriptionType.NEW_COMMENTS, new SubscriptionResultListener() {
 				@Override
 				public void onError(SocializeException error) {
 					showError(getContext(), error);
@@ -466,29 +492,30 @@ public class CommentListView extends BaseView {
 			notifyBox.showLoading();
 			
 			// Now load the subscription status for the user
-			SubscriptionUtils.isSubscribed(getActivity(), entity, SubscriptionType.NEW_COMMENTS, new SubscriptionGetListener() {
+			subscriptionUtils.isSubscribed(getActivity(), entity, SubscriptionType.NEW_COMMENTS, new SubscriptionCheckListener() {
 				
 				@Override
-				public void onGet(Subscription subscription) {
+				public void onSubscribed(Subscription subscription) {
+					notifyBox.setChecked(subscription.isSubscribed());
 					
-					if(subscription == null) {
-						notifyBox.setChecked(false);
-						
-						if(commentEntrySliderItem != null) {
-							commentEntrySliderItem.getCommentEntryView().setNotifySubscribeState(true); // Default to true
-						}
-					}
-					else {
-						notifyBox.setChecked(subscription.isSubscribed());
-						
-						if(commentEntrySliderItem != null) {
-							commentEntrySliderItem.getCommentEntryView().setNotifySubscribeState(subscription.isSubscribed());
-						}
+					if(commentEntrySliderItem != null) {
+						commentEntrySliderItem.getCommentEntryView().setNotifySubscribeState(subscription.isSubscribed());
 					}
 					
 					notifyBox.hideLoading();
 				}
-				
+
+				@Override
+				public void onNotSubscribed() {
+					notifyBox.setChecked(false);
+					
+					if(commentEntrySliderItem != null) {
+						commentEntrySliderItem.getCommentEntryView().setNotifySubscribeState(true); // Default to true
+					}
+					
+					notifyBox.hideLoading();
+				}
+
 				@Override
 				public void onError(SocializeException error) {
 					notifyBox.setChecked(false);
@@ -497,7 +524,7 @@ public class CommentListView extends BaseView {
 						logger.error("Error retrieving subscription info", error);
 					}
 					else {
-						Log.e(SocializeLogger.LOG_TAG, error.getMessage(), error);
+						SocializeLogger.e(error.getMessage(), error);
 					}
 					
 					if(commentEntrySliderItem != null) {
@@ -532,7 +559,7 @@ public class CommentListView extends BaseView {
 			}
 		}
 		
-		CommentUtils.getCommentsByEntity(getActivity(), entity.getKey(), 
+		commentUtils.getCommentsByEntity(getActivity(), entity.getKey(), 
 				startIndex,
 				endIndex, 
 				new CommentListListener() {
@@ -545,7 +572,7 @@ public class CommentListView extends BaseView {
 					logger.error("Error retrieving comments", error);
 				}
 				else {
-					Log.e(SocializeLogger.LOG_TAG, error.getMessage(), error);
+					SocializeLogger.e(error.getMessage(), error);
 				}
 
 				loading = false;
@@ -594,9 +621,6 @@ public class CommentListView extends BaseView {
 
 	@Override
 	public void onViewRendered(int width, int height) {
-		
-		// TODO: loading progress dialog?
-		
 		if(sliderFactory != null) {
 			if(commentEntrySlider == null) {
 				commentEntrySlider = sliderFactory.wrap(getSliderAnchor(), ZOrder.FRONT, height);
@@ -654,10 +678,6 @@ public class CommentListView extends BaseView {
 	public void setProgressDialogFactory(SimpleDialogFactory<ProgressDialog> progressDialogFactory) {
 		this.progressDialogFactory = progressDialogFactory;
 	}
-
-//	public void setAlertDialogFactory(SimpleDialogFactory<AlertDialog> alertDialogFactory) {
-//		this.alertDialogFactory = alertDialogFactory;
-//	}
 
 	public void setDrawables(Drawables drawables) {
 		this.drawables = drawables;
@@ -753,7 +773,7 @@ public class CommentListView extends BaseView {
 			commentEntrySlider.updateContent();
 		}
 		
-		UserSettings user = Socialize.getSocialize().getSession().getUserSettings();
+		UserSettings user = userUtils.getUserSettings(getContext());
 		
 		if(notifyBox != null && user != null) {
 			if(user.isNotificationsEnabled()) {
@@ -767,7 +787,7 @@ public class CommentListView extends BaseView {
 	
 	// So we can mock
 	protected CommentOptions newShareOptions() {
-		return CommentUtils.getUserCommentOptions(getContext());
+		return commentUtils.getUserCommentOptions(getContext());
 	}
 	
 	protected RelativeLayout getLayoutAnchor() {
@@ -795,5 +815,33 @@ public class CommentListView extends BaseView {
 
 	public void setDisplayUtils(DisplayUtils displayUtils) {
 		this.displayUtils = displayUtils;
+	}
+
+	public void setCommentUtils(CommentUtilsProxy commentUtils) {
+		this.commentUtils = commentUtils;
+	}
+	
+	public void setSubscriptionUtils(SubscriptionUtilsProxy subscriptionUtils) {
+		this.subscriptionUtils = subscriptionUtils;
+	}
+	
+	public void setUserUtils(UserUtilsProxy userUtils) {
+		this.userUtils = userUtils;
+	}
+	
+	public void setConfig(SocializeConfig config) {
+		this.config = config;
+	}
+	
+	public void setHeaderDisplayed(boolean showHeader) {
+		this.headerDisplayed = showHeader;
+		if(header != null) {
+			if(headerDisplayed) {
+				header.setVisibility(View.VISIBLE);
+			}
+			else {
+				header.setVisibility(View.GONE);
+			}
+		}
 	}
 }

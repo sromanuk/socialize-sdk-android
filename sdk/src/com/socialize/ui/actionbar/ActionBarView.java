@@ -24,7 +24,6 @@ package com.socialize.ui.actionbar;
 import android.content.Context;
 import android.os.Bundle;
 import android.util.AttributeSet;
-import android.util.Log;
 import android.view.View;
 import com.socialize.entity.Entity;
 import com.socialize.log.SocializeLogger;
@@ -40,6 +39,8 @@ public class ActionBarView extends EntityView {
 	
 	private ActionBarLayoutView actionBarLayoutView;
 	private ActionBarListener actionBarListener;
+	
+	private ActionBarOptions actionBarOptions;
 	
 	private Entity entity;
 	
@@ -66,7 +67,12 @@ public class ActionBarView extends EntityView {
 	@Override
 	protected View getView(Bundle bundle, Object... entityKeys) {
 		if(actionBarLayoutView == null) {
-			actionBarLayoutView = container.getBean("actionBarLayoutView", this);
+			
+			actionBarLayoutView = container.getBean("actionBarLayoutView", this, actionBarOptions);
+			
+			if(actionBarLayoutView == null) {
+				SocializeLogger.w("Request for bean [actionBarLayoutView] returned null");
+			}
 		}
 		
 		setListeners();
@@ -86,11 +92,6 @@ public class ActionBarView extends EntityView {
 		}
 	}
 	
-	@Override
-	public void onViewRendered(int width, int height) {
-		super.onViewRendered(width, height);
-	}
-
 	public Entity getEntity() {
 		return entity;
 	}
@@ -110,7 +111,7 @@ public class ActionBarView extends EntityView {
 	@Override
 	public void showError(Context context, Exception e) {
 		// Don't display popup
-		Log.e(SocializeLogger.LOG_TAG, e.getMessage(), e);
+		SocializeLogger.e(e.getMessage(), e);
 	}
 
 	@Override
@@ -143,5 +144,13 @@ public class ActionBarView extends EntityView {
 
 	public void setActionBarListener(ActionBarListener actionBarListener) {
 		this.actionBarListener = actionBarListener;
+	}
+	
+	public ActionBarOptions getActionBarOptions() {
+		return actionBarOptions;
+	}
+
+	public void setActionBarOptions(ActionBarOptions actionBarOptions) {
+		this.actionBarOptions = actionBarOptions;
 	}
 }

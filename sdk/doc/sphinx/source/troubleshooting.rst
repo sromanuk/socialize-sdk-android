@@ -25,6 +25,69 @@ filter them in the logcat display:
 
 .. image:: images/logcat.png
 
+
+Enabling Diagnostic Logs
+------------------------
+
+.. note:: 
+	
+	**SHOULD NOT BE USED IN CONJUCTION WITH DEBUG LOGS!!!**
+	
+	Enabling Diagnostic Logging can **SEVERLY AFFECT PERFORMANCE** and should only be enabled for specific users experiencing problems.
+	
+In some cases end users will experience problems that are not reproducible by you (the developer) during development or testing. In these cases it is often
+difficult to determine the cause of a problem chiefly due to the fact that local system logs on the device and typically not available in remote error reporting 
+systems.
+
+To overcome this Socialize has implemented a "Diagnostic Logging" mode which, when enabled, will duplicate any log entries produced by Socialize and write them to 
+an external file stored on the user's SD Card. 
+
+Enabling Diagnostic logging is a two step process:
+
+Step 1 - Manifest Permissions
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+
+Your application will require access to the SD Card in order to write diagnostic logs
+
+.. literalinclude:: snippets/diagnostic_permissions.txt
+   :emphasize-lines: 6
+   :language: xml
+   :tab-width: 4
+
+
+Step 2 - Enable Logging
+~~~~~~~~~~~~~~~~~~~~~~~
+
+Diagnostic Logging can be enabled/disabled via ConfigUtils
+
+.. note:: 
+	
+	Enabling Diagnostic Logging can **SEVERLY AFFECT PERFORMANCE** and should only be enabled for specific users experiencing problems.
+
+.. literalinclude:: ../../../../demo/src/com/socialize/demo/snippets/ConfigSnippets.java
+	:start-after: begin-snippet-0
+	:end-before: end-snippet-0
+
+Reviewing Logs
+~~~~~~~~~~~~~~
+
+When you want to be able to view the log file(s) created and would like to have the logs sent to you simply call the method provided by Socialize
+
+.. literalinclude:: ../../../../demo/src/com/socialize/demo/snippets/ConfigSnippets.java
+	:start-after: begin-snippet-1
+	:end-before: end-snippet-1
+	
+This will present the end user with their default email client together with an attachment containing the logs.
+
+Cleaning up Logs
+~~~~~~~~~~~~~~~~
+
+You can also optionally delete any previously created log files
+
+.. literalinclude:: ../../../../demo/src/com/socialize/demo/snippets/ConfigSnippets.java
+	:start-after: begin-snippet-2
+	:end-before: end-snippet-2
+
 Common Problems
 ---------------
 
@@ -60,7 +123,7 @@ Action Bar doesn't fit (appears unusually large)
 
 .. image:: images/action_bar_large.png
 
-If your action bar appears too large for the display the most likelt culprit is a rogue **anyDensity** setting in your **AndroidManifest.xml**
+If your action bar appears too large for the display the most likely culprit is a rogue **anyDensity** setting in your **AndroidManifest.xml**
 
 If you have the following setting in your manifest:
 
@@ -75,6 +138,15 @@ This will need to be changed to:
 	<supports-screens android:anyDensity="true"/>
 	
 Or just removed completely as **false** is the default value for newer (1.6+) Android versions.
+
+Auth Failure on Twitter
+~~~~~~~~~~~~~~~~~~~~~~~
+
+If you encounter the following error when attempting to authenticate with Twitter::
+
+	Authentication error: Unable to respond to any of these challenges: {oauth=WWW-Authenticate: OAuth realm="https://api.twitter.com"}
+	
+This usually means you have not configured a **Callback URL** in your Twitter app.  Review the :doc:`twitter` section for details on adding a callback url.
 	
 Support and Feedback
 --------------------

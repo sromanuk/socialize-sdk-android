@@ -34,8 +34,8 @@ import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
 import android.content.res.Resources;
 import android.telephony.TelephonyManager;
-import android.util.Log;
 import com.socialize.Socialize;
+import com.socialize.SocializeService;
 import com.socialize.config.SocializeConfig;
 import com.socialize.log.SocializeLogger;
 import com.socialize.ui.SocializeLaunchActivity;
@@ -76,7 +76,7 @@ public class DefaultAppUtils implements AppUtils {
 				logger.error(msg, e);
 			}
 			else {
-				Log.e(SocializeLogger.LOG_TAG, msg, e);
+				SocializeLogger.e(msg, e);
 			}
 		}
 
@@ -99,17 +99,6 @@ public class DefaultAppUtils implements AppUtils {
 		if(StringUtils.isEmpty(country)) {
 			country = Locale.getDefault().getCountry();
 		}
-	}
-	
-	protected String appendAppStore(String url) {
-		String appStore = config.getProperty(SocializeConfig.REDIRECT_APP_STORE);
-		if(!StringUtils.isEmpty(appStore)) {
-			appStore = getAppStoreAbbreviation(appStore.trim());
-			if(appStore != null) {
-				url += "/?f=" + appStore;
-			}
-		}
-		return url;
 	}
 	
 	@Override
@@ -170,7 +159,7 @@ public class DefaultAppUtils implements AppUtils {
 						"]", e);
 			}
 			else {
-				Log.e(SocializeLogger.LOG_TAG, e.getMessage(), e);
+				SocializeLogger.e(e.getMessage(), e);
 			}
 		}
 		
@@ -191,9 +180,9 @@ public class DefaultAppUtils implements AppUtils {
 	 * @see com.socialize.util.IAppUtils#isLocationAvaiable(android.content.Context)
 	 */
 	@Override
-	public boolean isLocationAvaiable(Context context) {
+	public boolean isLocationAvailable(Context context) {
 		if(!locationAssessed) {
-			locationAvailable = hasPermission(context, "android.permission.ACCESS_FINE_LOCATION") || hasPermission(context, "android.permission.ACCESS_COARSE_LOCATION");
+			locationAvailable = config.getBooleanProperty(SocializeConfig.SOCIALIZE_LOCATION_ENABLED, true) && (hasPermission(context, "android.permission.ACCESS_FINE_LOCATION") || hasPermission(context, "android.permission.ACCESS_COARSE_LOCATION"));
 			locationAssessed = true;
 		}
 		return locationAvailable;
@@ -213,9 +202,7 @@ public class DefaultAppUtils implements AppUtils {
 			
 			if(config.getBooleanProperty(SocializeConfig.SOCIALIZE_NOTIFICATIONS_ENABLED, true)) {
 				if(!hasPermission(context, permissionString)) {
-					lastNotificationWarning = "Notifications not available, permission [" +
-							permissionString +
-							"] not specified in AndroidManifest.xml";
+					lastNotificationWarning = "Notifications not available, permission [" + permissionString + "] not specified in AndroidManifest.xml";
 					if(logger.isInfoEnabled()) logger.info(lastNotificationWarning);
 					ok = false;
 				}
@@ -226,26 +213,7 @@ public class DefaultAppUtils implements AppUtils {
 					ok = false;
 				}
 				
-//				if(!isReceiverAvailable(context, SocializeBroadcastReceiver.class)) {
-//					
-//					lastNotificationWarning = "Notifications not available. Receiver [" +
-//							SocializeBroadcastReceiver.class +
-//							"] not configured in AndroidManifest.xml";
-//					
-//					if(logger.isInfoEnabled()) logger.info(lastNotificationWarning);
-//					ok = false;
-//				}
-//				if(!isServiceAvailable(context, SocializeC2DMReceiver.class)) {
-//					
-//					lastNotificationWarning = "Notifications not available. Service [" +
-//							SocializeC2DMReceiver.class +
-//							"] not configured in AndroidManifest.xml";
-//					
-//					if(logger.isInfoEnabled()) logger.info(lastNotificationWarning);
-//					ok = false;
-//				}			
-				
-				if(config.isEntityLoaderCheckEnabled() && Socialize.getSocialize().getEntityLoader() == null) {
+				if(config.isEntityLoaderCheckEnabled() && getSocialize().getEntityLoader() == null) {
 					lastNotificationWarning = "Notifications not available. Entity loader not found.";
 					if(logger.isInfoEnabled()) logger.info(lastNotificationWarning);
 					ok = false;
@@ -268,6 +236,10 @@ public class DefaultAppUtils implements AppUtils {
 		}
 
 		return notificationsAvailable;
+	}
+	
+	protected SocializeService getSocialize() {
+		return Socialize.getSocialize();
 	}
 	
 	@Override
@@ -294,6 +266,24 @@ public class DefaultAppUtils implements AppUtils {
 		return context.getPackageManager().checkPermission(permission, context.getPackageName()) == PackageManager.PERMISSION_GRANTED;
 	}	
 	
+//	@Override
+//	public boolean isAppInBackground(Context context) {
+//		ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
+//		List<RunningAppProcessInfo> runningProcInfo = activityManager .getRunningAppProcesses();
+//		for(int i = 0; i < runningProcInfo.size(); i++){
+//			RunningAppProcessInfo runningAppProcessInfo = runningProcInfo.get(i);
+//	        if(runningAppProcessInfo.processName.equals(context.getPackageName())) {
+//                if (runningAppProcessInfo.importance==RunningAppProcessInfo.IMPORTANCE_FOREGROUND || runningAppProcessInfo.lru==RunningAppProcessInfo.IMPORTANCE_VISIBLE){
+//                	return false;
+//                }
+//                else {
+//                	return true;
+//                }
+//	        }
+//		}
+//		return true;
+//	}
+
 	public static boolean launchMainApp(Activity origin) {
 		Intent mainIntent = getMainAppIntent(origin);
 		if(mainIntent != null) {
@@ -368,4 +358,11 @@ public class DefaultAppUtils implements AppUtils {
 	public void setConfig(SocializeConfig config) {
 		this.config = config;
 	}
+
+	
+	void setNotificationsAssessed(boolean notificationsAssessed) {
+		this.notificationsAssessed = notificationsAssessed;
+	}
+	
+	
 }

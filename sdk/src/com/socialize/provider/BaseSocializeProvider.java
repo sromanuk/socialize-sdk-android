@@ -34,6 +34,7 @@ import org.apache.http.HttpEntity;
 import org.apache.http.HttpResponse;
 import org.apache.http.client.ClientProtocolException;
 import org.apache.http.client.HttpClient;
+import org.apache.http.client.methods.HttpPost;
 import org.apache.http.client.methods.HttpUriRequest;
 import org.json.JSONArray;
 import org.json.JSONException;
@@ -187,6 +188,28 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 		return null;
 	}
 	
+	
+//	@Override
+//	public void updateSession(SocializeSession loaded, AuthProviderData data) {
+//		AuthProviderInfo info = data.getAuthProviderInfo();
+//		if(info != null) {
+//			if(!info.getType().equals(AuthProviderType.SOCIALIZE)) {
+//				updateSessionAuthData(loaded, data, info);
+//			}
+//		}
+//	}
+	
+//	public void updateSessionAuthData(SocializeSession loaded, AuthProviderData data, AuthProviderInfo info) {
+//		UserProviderCredentialsMap userProviderCredentialsMap = loaded.getUserProviderCredentials();
+//		if(userProviderCredentialsMap != null) {
+//			UserProviderCredentials userProviderCredentials = userProviderCredentialsMap.get(info.getType());
+//			if(userProviderCredentials != null && !userProviderCredentials.getAuthProviderInfo().matches(info)) {
+//				// Merge the info
+//				userProviderCredentials.getAuthProviderInfo().merge(info);
+//			}
+//		}
+//	}
+	
 	@Override
 	public boolean validateSession(SocializeSession session, AuthProviderData data) {
 		AuthProviderInfo info = data.getAuthProviderInfo();
@@ -194,43 +217,35 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 			if(info.getType().equals(AuthProviderType.SOCIALIZE)) {
 				return true;
 			}
-			return validateSessionAuthData(session, info);
+			return validateSessionAuthData(session, data, info);
 		}
 		else {	
-			return validateSessionAuthDataLegacy(session, data);
+			return false;
 		}		
 	}
 
-	public boolean validateSessionAuthData(SocializeSession loaded, AuthProviderInfo info) {
+
+	public boolean validateSessionAuthData(SocializeSession loaded, AuthProviderData data, AuthProviderInfo info) {
 		UserProviderCredentialsMap userProviderCredentialsMap = loaded.getUserProviderCredentials();
 		if(userProviderCredentialsMap != null) {
 			UserProviderCredentials userProviderCredentials = userProviderCredentialsMap.get(info.getType());
 			if(userProviderCredentials != null && userProviderCredentials.getAuthProviderInfo().matches(info)) {
-				return true;
+				boolean ok = true;
+				
+				String token3rdParty = data.getToken3rdParty();
+				String secret3rdParty = data.getSecret3rdParty();
+				
+				if(!StringUtils.isEmpty(token3rdParty)) {
+					ok = userProviderCredentials.getAccessToken().equals(token3rdParty);
+				}
+				
+				if(ok && !StringUtils.isEmpty(secret3rdParty)) {
+					ok = userProviderCredentials.getTokenSecret().equals(secret3rdParty);
+				}
+				
+				return ok;
 			}
 		}
-		return false;
-	}
-	
-	@SuppressWarnings("deprecation")
-	public boolean validateSessionAuthDataLegacy(SocializeSession loaded, AuthProviderData data) {
-		
-		if(data.getAuthProviderType().equals(AuthProviderType.SOCIALIZE)) {
-			return true;
-		}
-		
-		if(data.getAuthProviderType() != null && !StringUtils.isEmpty(data.getAppId3rdParty())) {
-			AuthProviderType loadedAuthProviderType = loaded.getAuthProviderType();
-			String loadedAppId3rdParty = loaded.get3rdPartyAppId();
-			
-			if(loadedAuthProviderType != null && 
-					!StringUtils.isEmpty(loadedAppId3rdParty) && 
-					loadedAuthProviderType.equals(data.getAuthProviderType()) && 
-					loadedAppId3rdParty.equals(data.getAppId3rdParty())) {
-				return true;
-			}
-		}
-		
 		return false;
 	}
 	
@@ -299,6 +314,10 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 					
 					HttpResponse response = executeRequest(client, request);
 					
+					if(logger != null && logger.isDebugEnabled()) {
+						logger.debug("RESPONSE CODE: " + response.getStatusLine().getStatusCode());
+					}
+					
 					entity = response.getEntity();
 					
 					if(httpUtils.isHttpError(response)) {
@@ -313,7 +332,13 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 					}
 					else {
 						
-						JSONObject json = jsonParser.parseObject(entity.getContent());
+						String responseData = ioUtils.readSafe(entity.getContent());
+						
+						if(logger != null && logger.isDebugEnabled()) {
+							logger.debug("RESPONSE: " + responseData);
+						}						
+						
+						JSONObject json = jsonParser.parseObject(responseData);
 						
 						User user = userFactory.fromJSON(json.getJSONObject("user"));
 						
@@ -385,7 +410,6 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 		UserProviderCredentialsMap credentials = session.getUserProviderCredentials();
 			
 		if(credentials != null) {
-
 			if(authData != null) {
 				Map<AuthProviderType, UserProviderCredentials> validCreds = new LinkedHashMap<AuthProviderType, UserProviderCredentials>();
 				for (UserAuthData userAuthData : authData) {
@@ -473,9 +497,9 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 	}
 
 	@Override
-	public ListResult<T> list(SocializeSession session, String endpoint, String key, String[] ids, String idKey, int startIndex, int endIndex) throws SocializeException {
+	public ListResult<T> list(SocializeSession session, String endpoint, String key, String[] ids, String idKey, Map<String, String> extraParams, int startIndex, int endIndex) throws SocializeException {
 		endpoint = prepareEndpoint(session, endpoint);
-		HttpUriRequest request = requestFactory.getListRequest(session, endpoint, key, ids, idKey, startIndex, endIndex);
+		HttpUriRequest request = requestFactory.getListRequest(session, endpoint, key, ids, idKey, extraParams, startIndex, endIndex);
 		return doListTypeRequest(request, ActionType.UNKNOWN);
 	}
 
@@ -533,6 +557,10 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 				
 				HttpResponse response = executeRequest(client, request);
 				
+				if(logger != null && logger.isDebugEnabled()) {
+					logger.debug("RESPONSE CODE: " + response.getStatusLine().getStatusCode());
+				}
+				
 				entity = response.getEntity();
 				
 				if(httpUtils.isHttpError(response)) {
@@ -545,7 +573,13 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 					throw new SocializeApiError(httpUtils, response.getStatusLine().getStatusCode(), msg);
 				}
 				else {
-					JSONObject json = jsonParser.parseObject(entity.getContent());
+					String responseData = ioUtils.readSafe(entity.getContent());
+					
+					if(logger != null && logger.isDebugEnabled()) {
+						logger.debug("RESPONSE: " + responseData);
+					}						
+					
+					JSONObject json = jsonParser.parseObject(responseData);
 					
 					return fromJSON(json, actionType);
 				}
@@ -580,12 +614,19 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 				builder.append("\n");
 			}
 			
-			logger.debug("Executing request \nurl:[" +
+			logger.debug("REQUEST \nurl:[" +
 					request.getURI().toString() +
 					"] \nheaders:\n" +
-					builder.toString() +
-					"");
+					builder.toString());
 			
+			if(request instanceof HttpPost) {
+				HttpPost post = (HttpPost) request;
+				HttpEntity entity = post.getEntity();
+				String requestData = ioUtils.readSafe(entity.getContent());
+				logger.debug("REQUEST \ndata:[" +
+						requestData +
+						"]");
+			}			
 		}
 		
 		return client.execute(request);
@@ -614,7 +655,7 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 				HttpResponse response = executeRequest(client, request);
 				
 				if(logger != null && logger.isDebugEnabled()) {
-					logger.debug("Response: " + response.getStatusLine().getStatusCode());
+					logger.debug("RESPONSE CODE: " + response.getStatusLine().getStatusCode());
 				}
 				
 				entity = response.getEntity();
@@ -637,8 +678,8 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 						String json = ioUtils.readSafe(entity.getContent());
 						
 						if(logger != null && logger.isDebugEnabled()) {
-							logger.debug("JSON Response: " + json);
-						}
+							logger.debug("RESPONSE: " + json);
+						}						
 						
 						if(!StringUtils.isEmpty(json)) {
 							JSONObject object = jsonParser.parseObject(json);

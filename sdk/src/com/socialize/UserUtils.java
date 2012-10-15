@@ -25,10 +25,12 @@ import java.lang.reflect.Proxy;
 import android.app.Activity;
 import android.content.Context;
 import com.socialize.api.action.user.UserUtilsProxy;
+import com.socialize.entity.SocializeAction;
 import com.socialize.entity.User;
 import com.socialize.error.SocializeException;
 import com.socialize.listener.user.UserGetListener;
 import com.socialize.listener.user.UserSaveListener;
+import com.socialize.log.SocializeLogger;
 import com.socialize.networks.SocialNetwork;
 import com.socialize.ui.profile.UserSettings;
 
@@ -60,17 +62,17 @@ public class UserUtils {
 	/**
 	 * Returns the current logged in user.  If no user is currently authenticated this will authenticate synchronously.
 	 * @param context The current context.
-	 * @return The current logged in user.
+	 * @return The current logged in user
 	 * @throws SocializeException
 	 */
-	public static User getCurrentUser(Context context)  {
+	public static User getCurrentUser(Context context) throws SocializeException  {
 		return proxy.getCurrentUser(context);
 	}
 	
 	/**
 	 * Returns the settings for the current user.
-	 * @param context
-	 * @return
+	 * @param context The current context.
+	 * @return The settings for the current user.
 	 */
 	public static UserSettings getUserSettings(Context context) {
 		return proxy.getUserSettings(context);
@@ -78,9 +80,9 @@ public class UserUtils {
 	
 	/**
 	 * Retrieves a User based on the given ID.
-	 * @param context
-	 * @param id
-	 * @param listener
+	 * @param context The current context.
+	 * @param id The id of the user.
+	 * @param listener A listener to handle the GET.
 	 */
 	public static void getUser(Context context, long id, UserGetListener listener) {
 		proxy.getUser(context, id, listener);
@@ -88,27 +90,55 @@ public class UserUtils {
 	
 	/**
 	 * Shows the user profile UI for the given user.
-	 * @param context
-	 * @param user
+	 * @param context The current context.
+	 * @param user The user for whom the profile will be shown.
 	 */
 	public static void showUserProfile (Activity context, User user) {
-		Socialize.getSocialize().showActionDetailView(context, user, null);
+		proxy.showUserProfileView(context, user, null);
+	}
+	
+	/**
+	 * Shows the user profile UI for the given user.
+	 * @param context The current context.
+	 * @param user The user for whom the profile will be shown.
+	 * @param action The action (comment/share/like) that was performed.
+	 */
+	public static void showUserProfileWithAction (Activity context, User user, SocializeAction action) {
+		proxy.showUserProfileView(context, user, action);
+	}	
+	
+	/**
+	 * Shows the settings UI for the current user.
+	 * @param context The current context.
+	 */
+	public static void showUserSettings (Activity context)  {
+		try {
+			proxy.showUserSettingsView(context, UserUtils.getCurrentUser(context).getId());
+		}
+		catch (SocializeException e) {
+			SocializeLogger.e("Error displaying user settings", e);
+		}		
 	}
 	
 	/**
 	 * Shows the settings UI for the current user.
-	 * @param context
-	 * @throws SocializeException If the current user could not be found or authenticated.
+	 * @param context The current context.
+	 * @param requestCode (Optional)  Set as the result on the UserSettings activity.
 	 */
-	public static void showUserSettings (Activity context)  {
-		Socialize.getSocialize().showUserProfileView(context, UserUtils.getCurrentUser(context).getId());
+	public static void showUserSettingsForResult(Activity context, int requestCode) {
+		try {
+			proxy.showUserSettingsViewForResult(context, UserUtils.getCurrentUser(context).getId(), requestCode);
+		}
+		catch (SocializeException e) {
+			SocializeLogger.e("Error displaying user settings", e);
+		}
 	}
 	
 	/**
 	 * Saves the profile for the given user.
-	 * @param context
-	 * @param user
-	 * @param listener
+	 * @param context The current context.
+	 * @param user The user for whom the settings will be saved.
+	 * @param listener A listener to handle the save.
 	 */
 	public static void saveUserSettings (Context context, UserSettings userSettings, UserSaveListener listener) {
 		proxy.saveUserSettings(context, userSettings, listener);
@@ -117,12 +147,9 @@ public class UserUtils {
 	/**
 	 * Clears the saved session state for the user.  
 	 * WARNING: This will wipe any locally saved preferences for this user.
-	 * @param context
+	 * @param context The current context.
 	 */
-	public static void clearCache(Context context) {
-		if(!Socialize.getSocialize().isInitialized(context)) {
-			Socialize.getSocialize().init(context);
-		}
-		Socialize.getSocialize().clearSessionCache(context);
+	public static void clearLocalSessionData(Context context) {
+		proxy.clearSession(context);
 	}
 }

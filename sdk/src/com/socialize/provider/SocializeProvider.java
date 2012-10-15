@@ -22,6 +22,7 @@
 package com.socialize.provider;
 
 import java.util.Collection;
+import java.util.Map;
 
 import com.socialize.api.SocializeSession;
 import com.socialize.api.WritableSession;
@@ -51,6 +52,8 @@ public interface SocializeProvider<T> {
 	
 	public boolean validateSession(SocializeSession loaded, AuthProviderData data);
 	
+//	public void updateSession(SocializeSession loaded, AuthProviderData data);
+	
 	public void clearSession();
 	
 	public void clearSession(AuthProviderType type);
@@ -59,7 +62,7 @@ public interface SocializeProvider<T> {
 
 	public SocializeSession authenticate(String endpoint, String key, String secret, AuthProviderData data, String udid) throws SocializeException;
 
-	public ListResult<T> list(SocializeSession session, String endpoint, String key, String[] ids, String idKey, int startIndex, int endIndex) throws SocializeException;
+	public ListResult<T> list(SocializeSession session, String endpoint, String key, String[] ids, String idKey, Map<String, String> extraParams, int startIndex, int endIndex) throws SocializeException;
 	
 	public ListResult<T> list(SocializeSession session, String endpoint, String key, String[] ids, int startIndex, int endIndex) throws SocializeException;
 	

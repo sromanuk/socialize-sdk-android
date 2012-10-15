@@ -25,6 +25,7 @@ import android.app.Activity;
 import android.content.Context;
 import com.socialize.annotations.Synchronous;
 import com.socialize.entity.Entity;
+import com.socialize.entity.User;
 import com.socialize.listener.share.ShareAddListener;
 import com.socialize.listener.share.ShareGetListener;
 import com.socialize.listener.share.ShareListListener;
@@ -44,6 +45,10 @@ public interface ShareUtilsProxy {
 	
 	public void showLinkDialog (Activity context, AuthDialogListener listener);
 	
+	public void preloadLinkDialog (Activity context);
+	
+	public void preloadShareDialog (Activity context);
+	
 	public void showShareDialog (Activity context, Entity entity, int options, SocialNetworkShareListener listener, ShareDialogListener dialogListener);
 	
 	public void shareViaEmail(Activity context, Entity entity, ShareAddListener listener);
@@ -52,15 +57,19 @@ public interface ShareUtilsProxy {
 	
 	public void shareViaSMS(Activity context, Entity entity, ShareAddListener listener);
 	
-	public void shareViaSocialNetworks(Activity context, Entity entity, ShareOptions shareOptions, SocialNetworkShareListener listener, SocialNetwork...networkss);
+	public void shareViaGooglePlus(Activity context, Entity entity, ShareAddListener listener);
+	
+	public void shareViaSocialNetworks(Activity context, Entity entity, ShareOptions shareOptions, SocialNetworkShareListener listener, SocialNetwork...networks);
 	
 	public void getShare (Activity context, ShareGetListener listener, long id);
 	
 	public void getShares (Activity context, ShareListListener listener, long...ids);
 	
-	public void getSharesByUser (Activity context, long userId, int start, int end, ShareListListener listener);
+	public void getSharesByUser (Activity context, User user, int start, int end, ShareListListener listener);
 	
 	public void getSharesByEntity (Activity context, String entityKey, int start, int end, ShareListListener listener);
+	
+	public void getSharesByApplication (Activity context, int start, int end, ShareListListener listener);
 	
 	public void registerShare(Activity context, Entity entity, ShareOptions shareOptions, ShareAddListener listener, SocialNetwork...networks);
 	
