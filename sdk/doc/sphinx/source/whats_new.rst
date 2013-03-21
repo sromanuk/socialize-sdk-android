@@ -6,8 +6,55 @@
 What's New
 ==========
 
-In this version (v2.5)
+In this version (v2.8)
 ----------------------
+
+**IMPORTANT NOTE FOR USERS UPGRADING**
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+If you are currently using an earlier version of Socialize (before v2.8) you will notice we no longer distribute a JAR file.
+
+**YOU MUST DELETE THE EXISTING socialize-xxx.jar FILE** before importing the new version.
+
+In addition, **a new activity definition is required in your AndroidManifest.xml for Facebook.**  Please refer to the getting started guide for more detail
+
+
+Socialize is now an Android Library Project
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+Socialize was previously distributed as a single "jar" file with all external resources (images etc) embedded within the JAR.
+This has become increasingly difficult to maintain and has also caused several performance issues so as of v2.8 Socialize 
+will now be distributed as an Android Library Project.
+
+Facebook SDK v3.0
+~~~~~~~~~~~~~~~~~
+Facebook recently published a new version of their SDK which represents a complete overhaul of their previous SDK. 
+v2.8 of Socialize incorporates this new version of the Facebook SDK 
+
+Performance Improvements
+~~~~~~~~~~~~~~~~~~~~~~~~
+The comment list view has undergone some tweaking to improve performance on Android 4.x devices.
+
+
+v2.7
+----
+
+Support for Google Cloud Messaging
+~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~
+With the deprecation by Google of the current "C2DM" framework Socialize has built and tested the required changes to support the newer 
+Google Cloud Messaging (GCM) system.
+
+.. note:: If you are upgrading an existing Socialize implementation you MUST add some new permissions to support Google's new Cloud Messaging system!
+
+Refer to :ref:`notifications` for more details. 
+
+Localization!
+~~~~~~~~~~~~~
+After many many requests we are happy to announce we now support localization!  You can now completely customize the UI in Socialize with alternate languages 
+via standard Android localization.
+
+Refer to :ref:`localization` for more details. 
+
+v2.5
+----
 
 Deep Linking
 ~~~~~~~~~~~~

@@ -42,6 +42,8 @@ import com.socialize.api.SocializeSession;
 import com.socialize.auth.AuthProviderType;
 import com.socialize.entity.User;
 import com.socialize.error.SocializeException;
+import com.socialize.i18n.I18NConstants;
+import com.socialize.i18n.LocalizationService;
 import com.socialize.listener.SocializeAuthListener;
 import com.socialize.networks.SocialNetworkCheckbox;
 import com.socialize.networks.SocialNetworkSignOutListener;
@@ -63,6 +65,8 @@ public class ProfileContentView extends BaseView {
 	private DisplayUtils displayUtils;
 	private AppUtils appUtils;
 	private Drawables drawables;
+	
+	private LocalizationService localizationService;
 	
 	private ProfilePictureEditView profilePictureEditView;
 	
@@ -149,8 +153,8 @@ public class ProfileContentView extends BaseView {
 		firstNameEdit = socializeEditTextFactory.getBean();
 		lastNameEdit = socializeEditTextFactory.getBean();
 		
-		firstNameEdit.setLabel("First Name");
-		lastNameEdit.setLabel("Last Name");
+		firstNameEdit.setLabel(localizationService.getString(I18NConstants.SETTINGS_LABEL_FIRST_NAME));
+		lastNameEdit.setLabel(localizationService.getString(I18NConstants.SETTINGS_LABEL_LAST_NAME));
 		
 		saveButton = profileSaveButtonFactory.getBean();
 		cancelButton = profileCancelButtonFactory.getBean();
@@ -198,15 +202,15 @@ public class ProfileContentView extends BaseView {
 	}
 	
 	protected void setupSocialButtons(ViewGroup group) {
-		if(getSocialize().isSupported(AuthProviderType.FACEBOOK)) {
+		if(getSocialize().isSupported(context, AuthProviderType.FACEBOOK)) {
 			facebookEnabledCheckbox = facebookEnabledCheckboxFactory.getBean();
 			autoPostFacebook = new CheckBox(getContext());
-			setupSocialButton(group, facebookEnabledCheckbox, autoPostFacebook, "Post to Facebook by default");
+			setupSocialButton(group, facebookEnabledCheckbox, autoPostFacebook, localizationService.getString(I18NConstants.AUTO_POST_FB));
 		}
-		if(getSocialize().isSupported(AuthProviderType.TWITTER)) {
+		if(getSocialize().isSupported(context, AuthProviderType.TWITTER)) {
 			twitterEnabledCheckbox = twitterEnabledCheckboxFactory.getBean();
 			autoPostTwitter = new CheckBox(getContext());
-			setupSocialButton(group, twitterEnabledCheckbox, autoPostTwitter, "Post to Twitter by default");
+			setupSocialButton(group, twitterEnabledCheckbox, autoPostTwitter, localizationService.getString(I18NConstants.AUTO_POST_TW));
 		}		
 	}
 	
@@ -361,15 +365,15 @@ public class ProfileContentView extends BaseView {
 		
 		setCurrentUser(currentUser);
 			
-		if(getSocialize().isSupported(AuthProviderType.FACEBOOK)) {
-			if(Socialize.getSocialize().isAuthenticated(AuthProviderType.FACEBOOK)) {
+		if(getSocialize().isSupported(context, AuthProviderType.FACEBOOK)) {
+			if(Socialize.getSocialize().isAuthenticatedForRead(AuthProviderType.FACEBOOK)) {
 				facebookEnabledCheckbox.setChecked(true);
 				autoPostFacebook.setChecked(settings.isAutoPostFacebook());
 			}
 		}
 		
-		if(getSocialize().isSupported(AuthProviderType.TWITTER)) {
-			if(Socialize.getSocialize().isAuthenticated(AuthProviderType.TWITTER)) {
+		if(getSocialize().isSupported(context, AuthProviderType.TWITTER)) {
+			if(Socialize.getSocialize().isAuthenticatedForRead(AuthProviderType.TWITTER)) {
 				twitterEnabledCheckbox.setChecked(true);
 				autoPostTwitter.setChecked(settings.isAutoPostTwitter());
 			}
@@ -390,14 +394,14 @@ public class ProfileContentView extends BaseView {
 	}	
 	
 	public void onNetworksChanged() {
-		if(getSocialize().isSupported(AuthProviderType.FACEBOOK)) {
+		if(getSocialize().isSupported(context, AuthProviderType.FACEBOOK)) {
 			
 			if(facebookEnabledCheckbox != null) {
 				facebookEnabledCheckbox.setVisibility(View.VISIBLE);
 			}
 			
 			if(autoPostFacebook != null) {
-				if(Socialize.getSocialize().isAuthenticated(AuthProviderType.FACEBOOK)) {
+				if(Socialize.getSocialize().isAuthenticatedForRead(AuthProviderType.FACEBOOK)) {
 					autoPostFacebook.setVisibility(View.VISIBLE);
 				}
 				else {
@@ -410,14 +414,14 @@ public class ProfileContentView extends BaseView {
 			if(autoPostFacebook != null) autoPostFacebook.setVisibility(View.GONE);
 		}
 		
-		if(getSocialize().isSupported(AuthProviderType.TWITTER)) {
+		if(getSocialize().isSupported(context, AuthProviderType.TWITTER)) {
 			
 			if(twitterEnabledCheckbox != null) {
 				twitterEnabledCheckbox.setVisibility(View.VISIBLE);
 			}
 			
 			if(autoPostTwitter != null) {
-				if(Socialize.getSocialize().isAuthenticated(AuthProviderType.TWITTER)) {
+				if(Socialize.getSocialize().isAuthenticatedForRead(AuthProviderType.TWITTER)) {
 					autoPostTwitter.setVisibility(View.VISIBLE);
 				}
 				else {
@@ -527,6 +531,10 @@ public class ProfileContentView extends BaseView {
 	
 	public void setLocationEnabledCheckboxFactory(IBeanFactory<CustomCheckbox> locationEnabledCheckboxFactory) {
 		this.locationEnabledCheckboxFactory = locationEnabledCheckboxFactory;
+	}
+	
+	public void setLocalizationService(LocalizationService localizationService) {
+		this.localizationService = localizationService;
 	}
 
 	public void setDrawables(Drawables drawables) {

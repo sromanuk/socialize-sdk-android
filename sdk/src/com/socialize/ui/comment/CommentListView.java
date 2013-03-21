@@ -21,6 +21,7 @@ import com.socialize.entity.ListResult;
 import com.socialize.entity.Subscription;
 import com.socialize.entity.User;
 import com.socialize.error.SocializeException;
+import com.socialize.i18n.I18NConstants;
 import com.socialize.listener.comment.CommentAddListener;
 import com.socialize.listener.comment.CommentListListener;
 import com.socialize.listener.subscription.SubscriptionCheckListener;
@@ -46,7 +47,6 @@ import com.socialize.view.BaseView;
 public class CommentListView extends BaseView {
 
 	private int defaultGrabLength = 30;
-	// TODO: config this
 	private int iconSize = 100;
 	private CommentAdapter commentAdapter;
 	private boolean loading = true; // Default to true
@@ -70,13 +70,16 @@ public class CommentListView extends BaseView {
 	private SocializeConfig config;
 	
 	private IBeanFactory<SocializeHeader> commentHeaderFactory;
+
 	private IBeanFactory<CommentEditField> commentEditFieldFactory;
 	private IBeanFactory<LoadingListView> commentContentViewFactory;
 	private IBeanFactory<CustomCheckbox> notificationEnabledOptionFactory;
 	
-	private View commentEntryField;
+	private CommentEditField commentEntryField;
 	private SocializeHeader header;
 	private LoadingListView content;
+	private String customHeaderText;
+	private boolean showCommentCountInHeader = true;
 	
 	private IBeanFactory<CommentEntrySliderItem> commentEntryFactory;
 	
@@ -247,7 +250,7 @@ public class CommentListView extends BaseView {
 				text = StringUtils.replaceNewLines(text, 3, 2);
 				
 				if(progressDialogFactory != null) {
-					dialog = progressDialogFactory.show(getContext(), "Posting comment", "Please wait...");
+					dialog = progressDialogFactory.show(getContext(), I18NConstants.DLG_COMMENT, I18NConstants.PLEASE_WAIT);
 				}
 				
 				CommentOptions options = newShareOptions();
@@ -279,7 +282,11 @@ public class CommentListView extends BaseView {
 				
 				if(onCommentViewActionListener != null) {
 					onCommentViewActionListener.onError(error);
-				}						
+				}			
+				
+				if(commentEntrySliderItem != null) {
+					commentEntrySliderItem.getCommentEntryView().getPostCommentButton().setEnabled(true);
+				}				
 			}
 
 			@Override
@@ -318,6 +325,10 @@ public class CommentListView extends BaseView {
 				if(onCommentViewActionListener != null) {
 					onCommentViewActionListener.onPostComment(entity);
 				}
+				
+				if(commentEntrySliderItem != null) {
+					commentEntrySliderItem.getCommentEntryView().getPostCommentButton().setEnabled(true);
+				}	
 			}
 
 			@Override
@@ -325,6 +336,10 @@ public class CommentListView extends BaseView {
 				if(dialog != null) {
 					dialog.dismiss();
 				}
+				
+				if(commentEntrySliderItem != null) {
+					commentEntrySliderItem.getCommentEntryView().getPostCommentButton().setEnabled(true);
+				}	
 			}
 		};
 	}
@@ -382,7 +397,6 @@ public class CommentListView extends BaseView {
 						int totalCount = entities.getTotalCount();
 						
 						List<Comment> items = entities.getItems();
-						preLoadImages(items);
 						commentAdapter.setComments(items);
 						commentAdapter.setTotalCount(totalCount);
 						
@@ -433,12 +447,19 @@ public class CommentListView extends BaseView {
 	
 	protected void setHeaderText() {
 		if(header != null) {
-			String name = entity.getName();
+			String name = (customHeaderText == null) ? entity.getName() : customHeaderText;
 			if(StringUtils.isEmpty(name)) {
-				header.setText(commentAdapter.getTotalCount() + " Comments");
+				if(showCommentCountInHeader) {
+					header.setText(commentAdapter.getTotalCount() + " Comments");
+				}
 			}
 			else {
-				header.setText(name + " (" + commentAdapter.getTotalCount() + ")");
+				if(showCommentCountInHeader) {
+					header.setText(name + " (" + commentAdapter.getTotalCount() + ")");
+				}
+				else {
+					header.setText(name);
+				}
 			}
 		}	
 	}
@@ -617,6 +638,10 @@ public class CommentListView extends BaseView {
 		if(onCommentViewActionListener != null) {
 			onCommentViewActionListener.onCreate(this);
 		}		
+		
+		if(commentAdapter != null && onCommentViewActionListener != null) {
+			commentAdapter.setOnCommentViewActionListener(onCommentViewActionListener);
+		}
 	}
 
 	@Override
@@ -723,7 +748,7 @@ public class CommentListView extends BaseView {
 		this.loading = loading;
 	}
 
-	protected void setCommentEntryField(View field) {
+	protected void setCommentEntryField(CommentEditField field) {
 		this.commentEntryField = field;
 	}
 
@@ -759,10 +784,6 @@ public class CommentListView extends BaseView {
 		return commentAdapter.getTotalCount();
 	}
 
-//	public void setAuthDialogFactory(AuthDialogFactory authDialogFactory) {
-//		this.authDialogFactory = authDialogFactory;
-//	}
-	
 	/**
 	 * Called when the current logged in user updates their profile.
 	 */
@@ -804,11 +825,16 @@ public class CommentListView extends BaseView {
 
 	public void setOnCommentViewActionListener(OnCommentViewActionListener onCommentViewActionListener) {
 		this.onCommentViewActionListener = onCommentViewActionListener;
+		
+		if(commentAdapter != null) {
+			commentAdapter.setOnCommentViewActionListener(onCommentViewActionListener);
+		}
 	}
 	
 	public ActionBarSliderView getCommentEntryViewSlider() {
 		return commentEntrySlider;
 	}
+	
 	public void setImageLoader(ImageLoader imageLoader) {
 		this.imageLoader = imageLoader;
 	}
@@ -833,6 +859,34 @@ public class CommentListView extends BaseView {
 		this.config = config;
 	}
 	
+	public CommentEditField getCommentEntryField() {
+		return commentEntryField;
+	}
+	
+	public String getCustomHeaderText() {
+		return customHeaderText;
+	}
+	
+	public void setCustomHeaderText(String customHeaderText) {
+		this.customHeaderText = customHeaderText;
+	}
+	
+	public boolean isShowCommentCountInHeader() {
+		return showCommentCountInHeader;
+	}
+
+	public void setShowCommentCountInHeader(boolean showCommentCountInHeader) {
+		this.showCommentCountInHeader = showCommentCountInHeader;
+	}
+	
+	public SocializeHeader getHeader() {
+		return header;
+	}
+	
+	public LoadingListView getContent() {
+		return content;
+	}
+
 	public void setHeaderDisplayed(boolean showHeader) {
 		this.headerDisplayed = showHeader;
 		if(header != null) {

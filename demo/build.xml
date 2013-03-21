@@ -84,6 +84,7 @@
 		
 		<echo>Building sdk...</echo>
 		
+		
 		<subant target="jar">
 	      <fileset dir="../sdk" includes="build.xml"/>
 	    </subant>		

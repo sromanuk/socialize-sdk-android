@@ -280,7 +280,7 @@ public class SocializeApiTest extends SocializeActivityTest {
 		AuthProvider<AuthProviderInfo> authProvider = new AuthProvider<AuthProviderInfo>() {
 			
 			@Override
-			public void authenticate(AuthProviderInfo info, AuthProviderListener listener) {
+			public void authenticate(Context context, AuthProviderInfo info, AuthProviderListener listener) {
 				addResult(1, listener);
 			}
 
@@ -293,8 +293,17 @@ public class SocializeApiTest extends SocializeActivityTest {
 			public boolean validate(AuthProviderInfo info) {
 				return true;
 			}
-		};
 
+			@Override
+			public boolean validateForRead(AuthProviderInfo info, String... permissions) {
+				return true;
+			}
+
+			@Override
+			public boolean validateForWrite(AuthProviderInfo info, String... permissions) {
+				return true;
+			}
+		};
 		
 		AndroidMock.expect(request.getEndpoint()).andReturn(endpoint);
 		AndroidMock.expect(authProviders.getProvider(authProviderType)).andReturn(authProvider);
@@ -372,7 +381,7 @@ public class SocializeApiTest extends SocializeActivityTest {
 
 		AuthProvider<AuthProviderInfo> authProvider = new AuthProvider<AuthProviderInfo>() {
 			@Override
-			public void authenticate(AuthProviderInfo info, AuthProviderListener listener) {
+			public void authenticate(Context context, AuthProviderInfo info, AuthProviderListener listener) {
 				addResult(1, listener);
 			}
 
@@ -383,6 +392,16 @@ public class SocializeApiTest extends SocializeActivityTest {
 			
 			@Override
 			public boolean validate(AuthProviderInfo info) {
+				return true;
+			}
+			
+			@Override
+			public boolean validateForRead(AuthProviderInfo info, String... permissions) {
+				return true;
+			}
+
+			@Override
+			public boolean validateForWrite(AuthProviderInfo info, String... permissions) {
 				return true;
 			}
 		};

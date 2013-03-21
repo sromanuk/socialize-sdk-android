@@ -23,12 +23,18 @@ package com.socialize.networks.facebook;
 
 import java.io.IOException;
 import java.lang.reflect.Proxy;
+import java.security.MessageDigest;
+import java.security.NoSuchAlgorithmException;
 import java.util.Map;
 import android.app.Activity;
 import android.content.Context;
+import android.content.pm.PackageInfo;
+import android.content.pm.PackageManager;
+import android.content.pm.Signature;
 import android.graphics.Bitmap;
 import android.graphics.Bitmap.CompressFormat;
 import android.net.Uri;
+import android.util.Base64;
 import com.socialize.SocializeActionProxy;
 import com.socialize.api.SocializeSession;
 import com.socialize.api.action.share.SocialNetworkShareListener;
@@ -53,13 +59,55 @@ public class FacebookUtils {
 				new Class[]{FacebookUtilsProxy.class},
 				new SocializeActionProxy("facebookUtils")); // Bean name
 	}
+	
+	/**
+	 * 
+	 * @param context
+	 * @param listener
+	 */
+	public static void linkForRead (Activity context, SocializeAuthListener listener, String...permissions) {
+		proxy.linkForRead(context, listener, permissions);
+	}
+	
+	/**
+	 * 
+	 * @param context
+	 * @param token
+	 * @param verifyPermissions
+	 * @param listener
+	 */
+	public static void linkForRead (Activity context, String token, boolean verifyPermissions, SocializeAuthListener listener, String...permissions) {
+		proxy.linkForRead(context, token, verifyPermissions, listener, permissions);
+	}
+	
+	/**
+	 * 
+	 * @param context
+	 * @param listener
+	 */
+	public static void linkForWrite (Activity context, SocializeAuthListener listener, String...permissions) {
+		proxy.linkForWrite(context, listener, permissions);
+	}
+	
+	/**
+	 * 
+	 * @param context
+	 * @param token
+	 * @param verifyPermissions
+	 * @param listener
+	 */
+	public static void linkForWrite (Activity context, String token, boolean verifyPermissions, SocializeAuthListener listener, String...permissions) {
+		proxy.linkForWrite(context, token, verifyPermissions, listener, permissions);
+	}
+	
 
 	/**
 	 * Links the current user to a facebook account.  The user will be presented with the Facebook authentication dialog.
 	 * @param context The current context.
 	 * @param listener A listener to handle the result.
 	 */
-	public static void link (Activity context, SocializeAuthListener listener){
+	@Deprecated
+	public static void link (Activity context, SocializeAuthListener listener) {
 		proxy.link(context, listener);
 	}
 	
@@ -69,7 +117,8 @@ public class FacebookUtils {
 	 * @param listener A listener to handle the result.
 	 * @param permissions One or more permissions defined by http://developers.facebook.com/docs/authentication/permissions/
 	 */
-	public static void link (Activity context, SocializeAuthListener listener, String...permissions){
+	@Deprecated
+	public static void link (Activity context, SocializeAuthListener listener, String...permissions) {
 		proxy.link(context, listener, permissions);
 	}	
 	
@@ -81,6 +130,7 @@ public class FacebookUtils {
 	 * If not an authentication with FB will be attempted.  If this parameter is false it is ASSUMED that permissions are valid.
 	 * @param listener A listener to handle the result.
 	 */
+	@Deprecated
 	public static void link (Activity context, String token, boolean verifyPermissions, SocializeAuthListener listener){
 		proxy.link(context, token, verifyPermissions, listener);
 	}
@@ -107,8 +157,27 @@ public class FacebookUtils {
 	 * @param context The current context.
 	 * @return True if the current user has linked their Facebook account.
 	 */
+	@Deprecated
 	public static boolean isLinked(Context context){
 		return proxy.isLinked(context);
+	}
+	
+	/**
+	 * 
+	 * @param context
+	 * @return
+	 */
+	public static boolean isLinkedForRead(Context context, String...permissions){
+		return proxy.isLinkedForRead(context, permissions);
+	}
+	
+	/**
+	 * 
+	 * @param context
+	 * @return
+	 */
+	public static boolean isLinkedForWrite(Context context, String...permissions){
+		return proxy.isLinkedForWrite(context, permissions);
 	}
 	
 	/**
@@ -147,11 +216,11 @@ public class FacebookUtils {
 	 */
 	public static void postEntity(final Activity context, final Entity entity, final String text, final SocialNetworkShareListener listener){
 		
-		if(proxy.isLinked(context)) {
+		if(proxy.isLinkedForWrite(context)) {
 			proxy.postEntity(context, entity, text, listener);	
 		}
 		else {
-			proxy.link(context, new SocializeAuthListener() {
+			proxy.linkForWrite(context, new SocializeAuthListener() {
 				
 				@Override
 				public void onError(SocializeException error) {
@@ -193,11 +262,11 @@ public class FacebookUtils {
 	 */
 	public static void post(final Activity context, final String graphPath, final Map<String, Object> params, final SocialNetworkPostListener listener) {
 		
-		if(proxy.isLinked(context)) {
+		if(proxy.isLinkedForWrite(context)) {
 			proxy.post(context, graphPath, params, listener);
 		}
 		else {
-			proxy.link(context, new SocializeAuthListener() {
+			proxy.linkForWrite(context, new SocializeAuthListener() {
 				
 				@Override
 				public void onError(SocializeException error) {
@@ -239,11 +308,11 @@ public class FacebookUtils {
 	 */
 	public static void get(final Activity context, final String graphPath, final Map<String, Object> params, final SocialNetworkPostListener listener) {
 		
-		if(proxy.isLinked(context)) {
+		if(proxy.isLinkedForRead(context)) {
 			proxy.get(context, graphPath, params, listener);
 		}
 		else {
-			proxy.link(context, new SocializeAuthListener() {
+			proxy.linkForRead(context, new SocializeAuthListener() {
 				
 				@Override
 				public void onError(SocializeException error) {
@@ -284,11 +353,11 @@ public class FacebookUtils {
 	 * @param listener A listener to handle the result.
 	 */
 	public static void delete(final Activity context, final String graphPath, final Map<String, Object> params, final SocialNetworkPostListener listener) {
-		if(proxy.isLinked(context)) {
+		if(proxy.isLinkedForWrite(context)) {
 			proxy.delete(context, graphPath, params, listener);
 		}
 		else {
-			proxy.link(context, new SocializeAuthListener() {
+			proxy.linkForWrite(context, new SocializeAuthListener() {
 				
 				@Override
 				public void onError(SocializeException error) {
@@ -347,9 +416,21 @@ public class FacebookUtils {
 	 * Extends the user's Facebook access token if needed.
 	 * @param context The current context
 	 * @param listener A listener to handle the result after re-authentication with Socialize.
+	 * @deprecated Use onResume()
 	 */
+	@Deprecated
 	public static void extendAccessToken(Activity context, SocializeAuthListener listener) {
 		proxy.extendAccessToken(context, listener);
+	}
+	
+	/**
+	 * Should be called in the onResume method of any activities using Socialize.
+	 * This is called automatically by in the Socialize.onResume() method.
+	 * @param context
+	 * @param listener
+	 */
+	public static void onResume(Activity context, SocializeAuthListener listener) {
+		proxy.onResume(context, listener);
 	}
 	
 	/**
@@ -358,7 +439,38 @@ public class FacebookUtils {
 	 * @param token The token for which we are going to retrieve permissions.
 	 * @param callback A callback to handle the response.
 	 */
-	public static void getCurrentPermissions(Activity context, String token, FacebookPermissionCallback callback) {
+	public static void getCurrentPermissions(Activity context, String token, OnPermissionResult callback) {
 		proxy.getCurrentPermissions(context, token, callback);
+	}	
+	
+	/**
+	 * Returns the hash key used to authenticate this application with Facebook.  Useful for debugging.
+	 * @param context
+	 * @return
+	 * @throws NoSuchAlgorithmException 
+	 */
+	public static String[] getHashKeys(Activity context) throws NoSuchAlgorithmException {
+        PackageInfo packageInfo = null;
+        String[] keys = null;
+        try {
+            packageInfo = context.getPackageManager().getPackageInfo(context.getPackageName(), PackageManager.GET_SIGNATURES);
+            
+            if(packageInfo != null && packageInfo.signatures != null && packageInfo.signatures.length > 0) {
+            	
+            	keys = new String[packageInfo.signatures.length];
+            	for (int i = 0; i < packageInfo.signatures.length; i++) {
+            		Signature signature = packageInfo.signatures[i];
+            		MessageDigest md = MessageDigest.getInstance("SHA1");
+            		md.update(signature.toByteArray());
+            		String hash = new String(Base64.encode(md.digest(), 0));
+            		keys[i] = hash;
+				}
+            }
+        } 
+        catch (PackageManager.NameNotFoundException e) {
+        	e.printStackTrace();
+        }
+        
+        return keys;
 	}
 }

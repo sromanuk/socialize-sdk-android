@@ -39,15 +39,36 @@ import com.socialize.networks.SocializeDeAuthListener;
 /**
  * @author Jason Polites
  */
+@SuppressWarnings("deprecation")
 public interface FacebookUtilsProxy {
+	@Deprecated
 	public void link (Activity context, SocializeAuthListener listener);
+	
+	@Deprecated
 	public void link (Activity context, String token, boolean verifyPermissions, SocializeAuthListener listener);
+	
+	public void linkForRead (Activity context, SocializeAuthListener listener, String...permissions);
+	
+	public void linkForRead (Activity context, String token, boolean verifyPermissions, SocializeAuthListener listener, String...permissions);
+	
+	public void linkForWrite (Activity context, SocializeAuthListener listener, String...permissions);
+	
+	public void linkForWrite (Activity context, String token, boolean verifyPermissions, SocializeAuthListener listener, String...permissions);	
+	
+	@Deprecated
 	public void link(Activity context, SocializeAuthListener listener, String...permissions);
 	
 	public void unlink (Context context, SocializeDeAuthListener listener);
 	
+	@Deprecated
 	@Synchronous
 	public boolean isLinked(Context context);
+	
+	@Synchronous
+	public boolean isLinkedForRead(Context context, String...permissions);
+	
+	@Synchronous
+	public boolean isLinkedForWrite(Context context, String...permissions);
 	
 	@Synchronous
 	public boolean isAvailable(Context context);
@@ -58,7 +79,10 @@ public interface FacebookUtilsProxy {
 	@Synchronous
 	public String getAccessToken(Context context);
 	
+	@Deprecated
 	public void extendAccessToken(Activity context, SocializeAuthListener listener);
+	
+	public void onResume(Activity context, SocializeAuthListener listener);
 	
 	public void postEntity(Activity context, Entity entity, String text, SocialNetworkShareListener listener);
 	
@@ -68,13 +92,16 @@ public interface FacebookUtilsProxy {
 	
 	public void delete(Activity context, String graphPath, Map<String, Object> postData, SocialNetworkPostListener listener);
 	
+	@Deprecated
 	public void getCurrentPermissions(Activity context, String token, FacebookPermissionCallback callback);
+	
+	public void getCurrentPermissions(Activity context, String token, OnPermissionResult callback);
 
 	public byte[] getImageForPost(Activity context, Uri imagePath) throws IOException;
 	
 	public byte[] getImageForPost(Activity context, Bitmap image, CompressFormat format) throws IOException;
 	
+	@Deprecated
 	@Synchronous
 	public Facebook getFacebook(Context context);
-	
 }

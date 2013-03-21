@@ -70,6 +70,9 @@ public class SocializeNotificationRegistrationSystemTest extends SocializeUnitTe
 			public void registerDevice(SocializeSession session, DeviceRegistration registration, DeviceRegistrationListener listener) {
 				listener.onSuccess();
 			}
+
+			@Override
+			public void registerDeviceSynchronous(SocializeSession session, DeviceRegistration registration) throws SocializeException {}
 		};
 		
 		IBeanFactory<DeviceRegistration> deviceRegistrationFactory = AndroidMock.createMock(IBeanFactory.class);
@@ -99,6 +102,7 @@ public class SocializeNotificationRegistrationSystemTest extends SocializeUnitTe
 	@UsesMocks ({SocializeConfig.class, MockContext.class, Intent.class})
 	public void test_registerC2DM() {
 		final String senderId = "foobar";
+		final String legacy_senderId = "foobar_legacy";
 		
 		NotificationRegistrationState notificationRegistrationState = AndroidMock.createMock(NotificationRegistrationState.class);
 		SocializeConfig config = AndroidMock.createMock(SocializeConfig.class);
@@ -108,9 +112,12 @@ public class SocializeNotificationRegistrationSystemTest extends SocializeUnitTe
 		AndroidMock.expect(notificationRegistrationState.isC2dmPending()).andReturn(false);
 		
 		notificationRegistrationState.setC2dmPendingRequestTime(AndroidMock.anyLong());
-		notificationRegistrationState.save(context);
+//		notificationRegistrationState.save(context);
 		
-		AndroidMock.expect(config.getProperty(SocializeConfig.SOCIALIZE_C2DM_SENDER_ID)).andReturn(senderId);
+		AndroidMock.expect(config.getProperty(SocializeConfig.SOCIALIZE_C2DM_SENDER_ID)).andReturn(legacy_senderId);
+		AndroidMock.expect(config.getProperty(SocializeConfig.SOCIALIZE_GCM_SENDER_ID, legacy_senderId)).andReturn(senderId);
+		AndroidMock.expect(config.getProperty(SocializeConfig.SOCIALIZE_CUSTOM_GCM_SENDER_ID)).andReturn(null);
+		AndroidMock.expect(config.getBooleanProperty(SocializeConfig.GCM_REGISTRATION_ENABLED, true)).andReturn(true).anyTimes();
 		
 		AndroidMock.expect(registrationIntent.putExtra(SocializeNotificationRegistrationSystem.EXTRA_APPLICATION_PENDING_INTENT, (PendingIntent) null)).andReturn(registrationIntent);
 		AndroidMock.expect(registrationIntent.putExtra(SocializeNotificationRegistrationSystem.EXTRA_SENDER, senderId)).andReturn(registrationIntent);
@@ -120,7 +127,7 @@ public class SocializeNotificationRegistrationSystemTest extends SocializeUnitTe
 		
 		SocializeNotificationRegistrationSystem system = new SocializeNotificationRegistrationSystem() {
 			@Override
-			public boolean isRegisteredC2DM() {
+			public boolean isRegisteredC2DM(Context context) {
 				return false;
 			}
 
@@ -148,7 +155,7 @@ public class SocializeNotificationRegistrationSystemTest extends SocializeUnitTe
 		NotificationRegistrationState notificationRegistrationState = AndroidMock.createMock(NotificationRegistrationState.class);
 		
 		notificationRegistrationState.setC2dmPendingRequestTime(0);
-		notificationRegistrationState.save(getContext());
+//		notificationRegistrationState.save(getContext());
 		
 		AndroidMock.replay(notificationRegistrationState);
 		
@@ -165,14 +172,14 @@ public class SocializeNotificationRegistrationSystemTest extends SocializeUnitTe
 		NotificationRegistrationState notificationRegistrationState = AndroidMock.createMock(NotificationRegistrationState.class);
 		
 		final User user = new User();
-		AndroidMock.expect(notificationRegistrationState.isRegisteredSocialize(user)).andReturn(true);
+		AndroidMock.expect(notificationRegistrationState.isRegisteredSocialize(getContext(), user)).andReturn(true);
 		AndroidMock.replay(notificationRegistrationState);
 		
 		SocializeNotificationRegistrationSystem system = new SocializeNotificationRegistrationSystem();
 		
 		system.setNotificationRegistrationState(notificationRegistrationState);
 		
-		assertTrue(system.isRegisteredSocialize(user));
+		assertTrue(system.isRegisteredSocialize(getContext(), user));
 		
 		AndroidMock.verify(notificationRegistrationState);
 	}
@@ -180,14 +187,14 @@ public class SocializeNotificationRegistrationSystemTest extends SocializeUnitTe
 	public void test_isRegisteredC2DM() {
 		NotificationRegistrationState notificationRegistrationState = AndroidMock.createMock(NotificationRegistrationState.class);
 		
-		AndroidMock.expect(notificationRegistrationState.isRegisteredC2DM()).andReturn(true);
+		AndroidMock.expect(notificationRegistrationState.isRegisteredC2DM(getContext())).andReturn(true);
 		AndroidMock.replay(notificationRegistrationState);
 		
 		SocializeNotificationRegistrationSystem system = new SocializeNotificationRegistrationSystem();
 		
 		system.setNotificationRegistrationState(notificationRegistrationState);
 		
-		assertTrue(system.isRegisteredC2DM());
+		assertTrue(system.isRegisteredC2DM(getContext()));
 		
 		AndroidMock.verify(notificationRegistrationState);
 	}
@@ -223,19 +230,28 @@ public class SocializeNotificationRegistrationSystemTest extends SocializeUnitTe
 		assertTrue(latch.await(10, TimeUnit.SECONDS));
 	}
 	
-	
+	@UsesMocks ({SocializeSession.class, SocializeConfig.class})
 	public void test_registerSocialize() {
 		NotificationRegistrationState notificationRegistrationState = AndroidMock.createMock(NotificationRegistrationState.class);
 		notificationRegistrationState.setPendingSocializeRequestTime(AndroidMock.anyLong());
 		notificationRegistrationState.save(getContext());
 		
 		final SocializeSession session = AndroidMock.createMock(SocializeSession.class);
+		final SocializeConfig config = AndroidMock.createMock(SocializeConfig.class);
 		final String registrationId = "foobar";
+		
+		AndroidMock.expect(config.getProperty(SocializeConfig.SOCIALIZE_CONSUMER_KEY)).andReturn("foo");
+		AndroidMock.expect(config.getProperty(SocializeConfig.SOCIALIZE_CONSUMER_SECRET)).andReturn("bar");
 		
 		SocializeUserSystem userSystem = new SocializeUserSystem(null) {
 			@Override
 			public void authenticate(Context context, SocializeAuthListener listener, SocializeSessionConsumer sessionConsumer) {
-				listener.onAuthSuccess(session);
+				fail();
+			}
+
+			@Override
+			public SocializeSession authenticateSynchronous(Context ctx, String consumerKey, String consumerSecret) throws SocializeException {
+				return session;
 			}
 		};
 		
@@ -247,13 +263,15 @@ public class SocializeNotificationRegistrationSystemTest extends SocializeUnitTe
 		};
 		
 		system.setUserSystem(userSystem);
+		system.setConfig(config);
+		
 		system.setNotificationRegistrationState(notificationRegistrationState);
 		
-		AndroidMock.replay(notificationRegistrationState, session);
+		AndroidMock.replay(notificationRegistrationState, session, config);
 		
 		system.registerSocialize(getContext(), registrationId);
 		
-		AndroidMock.verify(notificationRegistrationState, session);
+		AndroidMock.verify(notificationRegistrationState, session, config);
 		
 		SocializeSession result = getResult(0);
 		

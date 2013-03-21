@@ -29,6 +29,7 @@ import com.socialize.error.SocializeException;
 import com.socialize.listener.SocializeAuthListener;
 import com.socialize.log.SocializeLogger;
 import com.socialize.util.AppUtils;
+import com.socialize.util.StringUtils;
 
 /**
  * Checks for notification registrations.
@@ -58,8 +59,13 @@ public class NotificationChecker {
 				}
 				
 				@Override
-				public void onAuthSuccess(SocializeSession session) {
-					checked = checkRegistrations(context, session);
+				public void onAuthSuccess(final SocializeSession session) {
+					new Thread() {
+						@Override
+						public void run() {
+							checked = checkRegistrations(context, session);
+						}
+					}.start();
 				}
 				
 				@Override
@@ -89,46 +95,59 @@ public class NotificationChecker {
 		
 		if(appUtils.isNotificationsAvailable(context)) {
 
-			if(config.getBooleanProperty(SocializeConfig.SOCIALIZE_REGISTER_NOTIFICATION, true)) {
+			if(config.getBooleanProperty(SocializeConfig.SOCIALIZE_CHECK_NOTIFICATIONS, true)) {
 				if(logger != null && logger.isDebugEnabled()) {
-					logger.debug("Checking C2DM registration state");
+					logger.debug("Checking GCM registration state");
 				}
 				
-				if(!notificationRegistrationSystem.isRegisteredC2DM() || !notificationRegistrationSystem.isRegisteredSocialize(session.getUser())) {
+				boolean c2DMRegistered = notificationRegistrationSystem.isRegisteredC2DM(context);
+				boolean socRegistered = notificationRegistrationSystem.isRegisteredSocialize(context, session.getUser());
+				
+				if(!c2DMRegistered || !socRegistered) {
 					
 					// Reload
-					notificationRegistrationState.load(context);
+					notificationRegistrationState.reload(context);
 					
-					if(!notificationRegistrationSystem.isRegisteredC2DM()) {
-						
-						if(notificationRegistrationSystem.isRegistrationPending()) {
-							if(logger != null && logger.isDebugEnabled()) {
-								logger.debug("C2DM Registration already pending");
+					c2DMRegistered = notificationRegistrationSystem.isRegisteredC2DM(context);
+					socRegistered = notificationRegistrationSystem.isRegisteredSocialize(context, session.getUser());
+					
+					if(!c2DMRegistered || !socRegistered) {
+						if(!c2DMRegistered && config.getBooleanProperty(SocializeConfig.GCM_REGISTRATION_ENABLED, true)) {
+							
+							if(notificationRegistrationSystem.isRegistrationPending()) {
+								if(logger != null && logger.isDebugEnabled()) {
+									logger.debug("GCM Registration already pending");
+								}
+							}
+							else {
+								if(logger != null && logger.isInfoEnabled()) {
+									logger.info("Not registered with GCM, sending registration request...");
+								}
+								
+								notificationRegistrationSystem.registerC2DMAsync(context);
 							}
 						}
-						else {
-							if(logger != null && logger.isInfoEnabled()) {
-								logger.info("Not registered with C2DM, sending registration request...");
-							}
+						else if(!socRegistered && !StringUtils.isEmpty(notificationRegistrationState.getC2DMRegistrationId())) {
 							
-							notificationRegistrationSystem.registerC2DMAsync(context);
+							if(notificationRegistrationSystem.isSocializeRegistrationPending()) {
+								if(logger != null && logger.isDebugEnabled()) {
+									logger.debug("Registration already pending with Socialize for GCM");
+								}
+							}
+							else {
+								if(logger != null && logger.isInfoEnabled()) {
+									logger.info("Not registered with Socialize for GCM, registering...");
+								}
+								
+								notificationRegistrationSystem.registerSocialize(context, notificationRegistrationState.getC2DMRegistrationId());
+							}
 						}
 					}
-					else if(!notificationRegistrationSystem.isRegisteredSocialize(session.getUser())) {
-						
-						if(notificationRegistrationSystem.isSocializeRegistrationPending()) {
-							if(logger != null && logger.isDebugEnabled()) {
-								logger.debug("Registration already pending with Socialize for C2DM");
-							}
+					else {
+						if(logger != null && logger.isDebugEnabled()) {
+							logger.debug("C2DM registration OK");
 						}
-						else {
-							if(logger != null && logger.isInfoEnabled()) {
-								logger.info("Not registered with Socialize for C2DM, registering...");
-							}
-							
-							notificationRegistrationSystem.registerSocialize(context, notificationRegistrationState.getC2DMRegistrationId());
-						}
-					}				
+					}
 				}
 				else {
 					if(logger != null && logger.isDebugEnabled()) {
@@ -140,7 +159,7 @@ public class NotificationChecker {
 			}
 			else {
 				if(logger != null && logger.isWarnEnabled()) {
-					logger.warn("C2DM registration check skipped");
+					logger.warn("GCM registration check skipped");
 				}	
 			}
 		}
@@ -148,7 +167,6 @@ public class NotificationChecker {
 			if(logger != null && logger.isInfoEnabled()) {
 				logger.info("Notifications not enabled.  Check the AndroidManifest.xml for correct configuration.");
 			}	
-			
 			
 			checked = true;
 		}

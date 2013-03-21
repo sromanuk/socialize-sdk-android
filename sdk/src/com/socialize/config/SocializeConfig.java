@@ -47,12 +47,24 @@ public class SocializeConfig {
 	
 	public static final String SOCIALIZE_CONSUMER_KEY = "socialize.consumer.key";
 	public static final String SOCIALIZE_CONSUMER_SECRET = "socialize.consumer.secret";
-	
-	public static final String SOCIALIZE_REGISTER_NOTIFICATION = "socialize.register.notification";
-	public static final String SOCIALIZE_NOTIFICATIONS_ENABLED = "socialize.notification.enabled";
+	public static final String SOCIALIZE_CHECK_NOTIFICATIONS = "socialize.check.notifications";
 	public static final String SOCIALIZE_NOTIFICATION_APP_ICON = "socialize.notification.app.icon";
 	
+	/**
+	 * Time between duplicate gcm registration requests
+	 */
+	public static final String GCM_REGISTRATION_INTERVAL = "gcm.registration.interval";
+	public static final String GCM_REGISTRATION_ENABLED = "gcm.registration.enabled";
+	
+	public static final String SOCIALIZE_NOTIFICATIONS_INTERVAL = "socialize.notification.request.interval";
+	public static final String SOCIALIZE_NOTIFICATIONS_ENABLED = "socialize.notification.enabled";
+	
+	@Deprecated
 	public static final String SOCIALIZE_C2DM_SENDER_ID = "socialize.c2dm.sender.id";
+	
+	public static final String SOCIALIZE_GCM_SENDER_ID = "socialize.gcm.sender.id";
+	
+	public static final String SOCIALIZE_CUSTOM_GCM_SENDER_ID = "socialize.custom.gcm.sender.id";
 	
 	public static final String SOCIALIZE_ENTITY_LOADER = "socialize.entity.loader";
 	
@@ -80,6 +92,8 @@ public class SocializeConfig {
 	public static final String SOCIALIZE_SHOW_COMMENT_HEADER = "socialize.show.comment.header";
 	
 	public static final String SOCIALIZE_PROMPT_SHARE = "socialize.prompt.share";
+	
+	public static final String SOCIALIZE_ALLOW_DELETE_COMMENT = "socialize.allow.delete.comment";
 	
 	public static final String GOOGLE_PLUS_ENABLED = "googleplus.enabled";
 	
@@ -306,6 +320,14 @@ public class SocializeConfig {
 		return defaultValue;
 	}
 	
+	public long getLongProperty(String key, long defaultValue) {
+		String val = getProperty(key);
+		if(!StringUtils.isEmpty(val)) {
+			return Long.parseLong(val);
+		}
+		return defaultValue;
+	}	
+	
 	public boolean getBooleanProperty(String key, boolean defaultValue) {
 		String val = getProperty(key);
 		if(!StringUtils.isEmpty(val)) {
@@ -390,6 +412,10 @@ public class SocializeConfig {
 	public boolean isAllowNeverAuth() {
 		return getBooleanProperty(SOCIALIZE_ALLOW_NEVER_AUTH, false);
 	}
+	
+	public boolean isAllowDeleteComment() {
+		return getBooleanProperty(SOCIALIZE_ALLOW_DELETE_COMMENT, false);
+	}	
 	
 	public boolean isShowCommentHeader() {
 		return getBooleanProperty(SOCIALIZE_SHOW_COMMENT_HEADER, true);

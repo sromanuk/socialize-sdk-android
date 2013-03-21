@@ -29,13 +29,13 @@ import java.util.List;
 import java.util.Set;
 import java.util.concurrent.CountDownLatch;
 import java.util.concurrent.TimeUnit;
+import java.util.concurrent.locks.Lock;
+import java.util.concurrent.locks.ReentrantReadWriteLock;
 import android.app.Activity;
-import android.content.ActivityNotFoundException;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
 import android.util.Log;
-import android.view.View;
 import com.socialize.android.ioc.IOCContainer;
 import com.socialize.android.ioc.Logger;
 import com.socialize.api.SocializeSession;
@@ -50,35 +50,27 @@ import com.socialize.auth.AuthProviders;
 import com.socialize.auth.SocializeAuthProviderInfo;
 import com.socialize.auth.UserProviderCredentials;
 import com.socialize.auth.UserProviderCredentialsMap;
-import com.socialize.auth.facebook.FacebookService;
 import com.socialize.concurrent.AsyncTaskManager;
 import com.socialize.concurrent.ManagedAsyncTask;
 import com.socialize.config.SocializeConfig;
 import com.socialize.entity.Comment;
-import com.socialize.entity.Entity;
-import com.socialize.entity.SocializeAction;
-import com.socialize.entity.User;
 import com.socialize.error.SocializeException;
 import com.socialize.init.SocializeInitializationAsserter;
 import com.socialize.ioc.SocializeIOC;
-import com.socialize.listener.ListenerHolder;
 import com.socialize.listener.SocializeAuthListener;
 import com.socialize.listener.SocializeInitListener;
 import com.socialize.listener.SocializeListener;
 import com.socialize.location.SocializeLocationProvider;
 import com.socialize.log.SocializeLogger;
+import com.socialize.networks.facebook.FacebookFacade;
 import com.socialize.networks.facebook.FacebookUtils;
+import com.socialize.networks.twitter.TwitterUtils;
 import com.socialize.notifications.C2DMCallback;
 import com.socialize.notifications.NotificationChecker;
 import com.socialize.notifications.SocializeC2DMReceiver;
 import com.socialize.notifications.WakeLock;
 import com.socialize.ui.ActivityIOCProvider;
 import com.socialize.ui.SocializeEntityLoader;
-import com.socialize.ui.actionbar.ActionBarListener;
-import com.socialize.ui.actionbar.ActionBarOptions;
-import com.socialize.ui.comment.CommentActivity;
-import com.socialize.ui.comment.CommentView;
-import com.socialize.ui.comment.OnCommentViewActionListener;
 import com.socialize.util.AppUtils;
 import com.socialize.util.ClassLoaderProvider;
 import com.socialize.util.DisplayUtils;
@@ -91,6 +83,7 @@ import com.socialize.util.ResourceLocator;
 public class SocializeServiceImpl implements SocializeService {
 	
 	static final String receiver = SocializeC2DMReceiver.class.getName();
+	static final Lock initLock = new ReentrantReadWriteLock().writeLock();
 	
 	private SocializeLogger logger;
 	private IOCContainer container;
@@ -109,7 +102,6 @@ public class SocializeServiceImpl implements SocializeService {
 	private SocializeConfig config = new SocializeConfig();
 	
 	private SocializeEntityLoader entityLoader;
-	private ListenerHolder listenerHolder;
 	
 	private String[] initPaths = null;
 	private int initCount = 0;
@@ -164,8 +156,15 @@ public class SocializeServiceImpl implements SocializeService {
 	}
 
 	@Override
-	public boolean isSupported(AuthProviderType type) {
-		return authProviderInfoBuilder.isSupported(type);
+	public boolean isSupported(Context context, AuthProviderType type) {
+		switch(type) {
+			case FACEBOOK:
+				return FacebookUtils.isAvailable(context);
+			case TWITTER:
+				return TwitterUtils.isAvailable(context);
+			default:
+				return authProviderInfoBuilder.isSupported(type);
+		}
 	}
 
 	@Override
@@ -229,120 +228,128 @@ public class SocializeServiceImpl implements SocializeService {
 	}
 	
 	public synchronized IOCContainer initWithContainer(Context context, SocializeInitListener listener, String...paths) throws Exception {
-		boolean init = false;
 		
-		// Check socialize is supported on this device.
-		isSocializeSupported(context);
-		
-		String[] localPaths = getInitPaths();
-		
-		if(paths != null) {
+		try {
+			initLock.lock();
+			
+			boolean init = false;
+			
+			// Check socialize is supported on this device.
+			isSocializeSupported(context);
+			
+			String[] localPaths = getInitPaths();
+			
+			if(paths != null) {
 
-			if(isInitialized()) {
-				
-				if(localPaths != null) {
-					for (String path : paths) {
-						if(binarySearch(localPaths, path) < 0) {
-							
-							if(logger != null && logger.isInfoEnabled()) {
-								logger.info("New path found for beans [" +
-										path +
-										"].  Re-initializing Socialize");
-							}
-							
-							this.initCount = 0;
-							
-							// Destroy the container so we recreate bean references
-							if(container != null) {
-								if(logger != null && logger.isDebugEnabled()) {
-									logger.debug("Destroying IOC container");
+				if(isInitialized()) {
+					
+					if(localPaths != null) {
+						for (String path : paths) {
+							if(binarySearch(localPaths, path) < 0) {
+								
+								if(logger != null && logger.isInfoEnabled()) {
+									logger.info("New path found for beans [" +
+											path +
+											"].  Re-initializing Socialize");
 								}
-								container.destroy();
+								
+								this.initCount = 0;
+								
+								// Destroy the container so we recreate bean references
+								if(container != null) {
+									if(logger != null && logger.isDebugEnabled()) {
+										logger.debug("Destroying IOC container");
+									}
+									container.destroy();
+								}
+								
+								init = true;
+								
+								break;
 							}
-							
-							init = true;
-							
-							break;
 						}
+					}
+					else {
+						String msg = "Socialize reported as initialize, but no initPaths were found.  This should not happen!";
+						if(logger != null) {
+							logger.error(msg);
+						}
+						else {
+							System.err.println(msg);
+						}
+						
+						destroy();
+						init = true;
 					}
 				}
 				else {
-					String msg = "Socialize reported as initialize, but no initPaths were found.  This should not happen!";
-					if(logger != null) {
-						logger.error(msg);
-					}
-					else {
-						System.err.println(msg);
-					}
-					
-					destroy();
 					init = true;
 				}
-			}
-			else {
-				init = true;
-			}
-			
-			if(init) {
-				try {
-					Logger.LOG_KEY = Socialize.LOG_KEY;
-					Logger.logLevel = Log.WARN;
-					
-					this.initPaths = paths;
-					
-					sort(this.initPaths);
-					
-					if(container == null) {
-						container = newSocializeIOC();
-					}
-					
-					ResourceLocator locator = newResourceLocator();
-					
-					locator.setLogger(newLogger());
-					
-					ClassLoaderProvider provider = newClassLoaderProvider();
-					
-					locator.setClassLoaderProvider(provider);
-					
-					if(logger != null) {
+				
+				if(init) {
+					try {
+						Logger.LOG_KEY = Socialize.LOG_KEY;
+						Logger.logLevel = Log.WARN;
 						
-						if(logger.isDebugEnabled()) {
-							for (String path : paths) {
-								logger.debug("Initializing Socialize with path [" +
-										path +
-										"]");
-							}
+						this.initPaths = paths;
+						
+						sort(this.initPaths);
+						
+						if(container == null) {
+							container = newSocializeIOC();
+						}
+						
+						ResourceLocator locator = newResourceLocator();
+						
+						locator.setLogger(newLogger());
+						
+						ClassLoaderProvider provider = newClassLoaderProvider();
+						
+						locator.setClassLoaderProvider(provider);
+						
+						if(logger != null) {
 							
-							Logger.logLevel = Log.DEBUG;
-						}
-						else if(logger.isInfoEnabled()) {
-							Logger.logLevel = Log.INFO;
-						}
-					}	
-					
-					((SocializeIOC) container).init(context, locator, paths);
-					
-					init(context, container, listener); // initCount incremented here
+							if(logger.isDebugEnabled()) {
+								for (String path : paths) {
+									logger.debug("Initializing Socialize with path [" +
+											path +
+											"]");
+								}
+								
+								Logger.logLevel = Log.DEBUG;
+							}
+							else if(logger.isInfoEnabled()) {
+								Logger.logLevel = Log.INFO;
+							}
+						}	
+						
+						((SocializeIOC) container).init(context, locator, paths);
+						
+						init(context, container, listener); // initCount incremented here
+					}
+					catch (Exception e) {
+						throw e;
+					}
 				}
-				catch (Exception e) {
-					throw e;
+				else {
+					this.initCount++;
 				}
+				
+				// Always set the context on the container
+				setContext(context);
 			}
 			else {
-				this.initCount++;
-			}
-			
-			// Always set the context on the container
-			setContext(context);
+				String msg = "Attempt to initialize Socialize with null bean config paths";
+				if(logger != null) {
+					logger.error(msg);
+				}
+				else {
+					System.err.println(msg);
+				}
+			}			
 		}
-		else {
-			String msg = "Attempt to initialize Socialize with null bean config paths";
-			if(logger != null) {
-				logger.error(msg);
-			}
-			else {
-				System.err.println(msg);
-			}
+		finally {
+			initLock.unlock();
 		}
 		
 		return container;
@@ -418,7 +425,6 @@ public class SocializeServiceImpl implements SocializeService {
 				this.notificationChecker = container.getBean("notificationChecker");
 				this.appUtils = container.getBean("appUtils");
 				this.locationProvider = container.getBean("locationProvider");
-				this.listenerHolder = container.getBean("listenerHolder");
 				
 				SocializeConfig mainConfig = container.getBean("config");
 				
@@ -626,7 +632,7 @@ public class SocializeServiceImpl implements SocializeService {
 			}.start();
 			
 			try {
-				if(!latch.await(10, TimeUnit.SECONDS)) {
+				if(!latch.await(20, TimeUnit.SECONDS)) {
 					throw new SocializeException("Timeout while authenticating");
 				}
 			}
@@ -642,6 +648,7 @@ public class SocializeServiceImpl implements SocializeService {
 		throw new SocializeException("Socialize not initialized");
 	}
 	
+	@Deprecated
 	@Override
 	public void authenticate(Context context, AuthProviderType authProviderType, SocializeAuthListener authListener, String... permissions) {
 		SocializeConfig config = getConfig();
@@ -649,17 +656,35 @@ public class SocializeServiceImpl implements SocializeService {
 		String consumerSecret = config.getProperty(SocializeConfig.SOCIALIZE_CONSUMER_SECRET);
 		
 		if(permissions.length > 0) {
-			if(!Arrays.equals(permissions, FacebookService.DEFAULT_PERMISSIONS)) {
+			if(!Arrays.equals(permissions, FacebookFacade.DEFAULT_PERMISSIONS)) {
 				// Ensure the requested permissions include the default permissions
 				Set<String> all = new HashSet<String>();
 				all.addAll(Arrays.asList(permissions));
-				all.addAll(Arrays.asList(FacebookService.DEFAULT_PERMISSIONS));
+				all.addAll(Arrays.asList(FacebookFacade.DEFAULT_PERMISSIONS));
 				permissions = all.toArray(new String[all.size()]);
 			}
 		}
 
 		AuthProviderInfo authProviderInfo = authProviderInfoBuilder.getFactory(authProviderType).getInstance(permissions);
 		
+		authenticate(context, consumerKey, consumerSecret, authProviderInfo,  authListener);
+	}
+
+	@Override
+	public void authenticateForRead(Context context, AuthProviderType authProviderType, SocializeAuthListener authListener, String... permissions) {
+		SocializeConfig config = getConfig();
+		String consumerKey = config.getProperty(SocializeConfig.SOCIALIZE_CONSUMER_KEY);
+		String consumerSecret = config.getProperty(SocializeConfig.SOCIALIZE_CONSUMER_SECRET);
+		AuthProviderInfo authProviderInfo = authProviderInfoBuilder.getFactory(authProviderType).getInstanceForRead(permissions);
+		authenticate(context, consumerKey, consumerSecret, authProviderInfo,  authListener);		
+	}
+
+	@Override
+	public void authenticateForWrite(Context context, AuthProviderType authProviderType, SocializeAuthListener authListener, String... permissions) {
+		SocializeConfig config = getConfig();
+		String consumerKey = config.getProperty(SocializeConfig.SOCIALIZE_CONSUMER_KEY);
+		String consumerSecret = config.getProperty(SocializeConfig.SOCIALIZE_CONSUMER_SECRET);
+		AuthProviderInfo authProviderInfo = authProviderInfoBuilder.getFactory(authProviderType).getInstanceForWrite(permissions);
 		authenticate(context, consumerKey, consumerSecret, authProviderInfo,  authListener);
 	}
 
@@ -724,35 +749,61 @@ public class SocializeServiceImpl implements SocializeService {
 	
 	/*
 	 * (non-Javadoc)
-	 * @see com.socialize.SocializeService#isAuthenticated(com.socialize.auth.AuthProviderType)
+	 * @see com.socialize.SocializeService#isAuthenticatedForRead(com.socialize.auth.AuthProviderType)
 	 */
 	@Override
-	public boolean isAuthenticated(AuthProviderType providerType) {
+	public boolean isAuthenticatedForRead(AuthProviderType providerType, String...permissions) {
+		return isAuthenticated(providerType, true, permissions);
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.socialize.SocializeService#isAuthenticatedForWrite(com.socialize.auth.AuthProviderType)
+	 */
+	@Override
+	public boolean isAuthenticatedForWrite(AuthProviderType providerType, String...permissions) {
+		return isAuthenticated(providerType, false, permissions);
+	}
+	
+	private boolean isAuthenticated(AuthProviderType providerType, boolean readOnly, String...permissions) {
 		if(isAuthenticated()) {
-			
+
 			if(providerType.equals(AuthProviderType.SOCIALIZE)) {
 				return true;
 			}
-			
+
 			UserProviderCredentials userProviderCredentials = session.getUserProviderCredentials(providerType);
-			
+
 			if(userProviderCredentials != null) {
 				// Validate the credentials
 				AuthProviderInfo authProviderInfo = userProviderCredentials.getAuthProviderInfo();
-				
+
 				if(authProviderInfo != null) {
 					AuthProvider<AuthProviderInfo> provider = authProviders.getProvider(providerType);
-					
-					boolean valid = provider.validate(authProviderInfo);
-					
-					return valid;
+
+					if(readOnly) {
+						return provider.validateForRead(authProviderInfo, permissions);
+					}
+					else {
+						return provider.validateForWrite(authProviderInfo, permissions);
+					}
 				}
-				
+
 				return false;
 			}
 		}
-		
+
 		return false;
+	}
+
+	/*
+	 * (non-Javadoc)
+	 * @see com.socialize.SocializeService#isAuthenticated(com.socialize.auth.AuthProviderType)
+	 */
+	@Deprecated
+	@Override
+	public boolean isAuthenticated(AuthProviderType providerType) {
+		return isAuthenticated(providerType, false, FacebookFacade.DEFAULT_PERMISSIONS);
 	}
 
 	protected boolean assertAuthenticated(SocializeListener listener) {
@@ -953,96 +1004,6 @@ public class SocializeServiceImpl implements SocializeService {
 		this.entityLoader = entityLoader;
 	}
 	
-
-	@Deprecated
-	@Override
-	public View showActionBar(Activity parent, int resId, Entity entity) {
-		return ActionBarUtils.showActionBar(parent, resId, entity, null, null);
-	}
-
-
-	@Deprecated
-	@Override
-	public View showActionBar(Activity parent, int resId, Entity entity, ActionBarOptions options) {
-		return ActionBarUtils.showActionBar(parent, resId, entity, options);
-	}
-
-	@Deprecated
-	@Override
-	public View showActionBar(Activity parent, int resId, Entity entity, ActionBarOptions options, ActionBarListener listener) {
-		return ActionBarUtils.showActionBar(parent, resId, entity, options, listener);
-	}
-
-	@Deprecated
-	@Override
-	public View showActionBar(Activity parent, View original, Entity entity) {
-		return ActionBarUtils.showActionBar(parent, original, entity);
-	}
-	
-	@Deprecated
-	@Override
-	public View showActionBar(Activity parent, View original, Entity entity, ActionBarOptions options) {
-		return ActionBarUtils.showActionBar(parent, original, entity, options);
-	}
-
-	@Deprecated
-	@Override
-	public View showActionBar(Activity parent, View original, Entity entity, ActionBarOptions options, ActionBarListener listener) {
-		return ActionBarUtils.showActionBar(parent, original, entity, options, listener);
-	}
-	
-	@Deprecated
-	@Override
-	public void showActionDetailView(Activity context, User user, SocializeAction action) {
-		UserUtils.showUserProfileWithAction(context, user, action);
-	}
-
-	/**
-	 * Shows the comments list for the given entity.
-	 * @param context
-	 * @param entity
-	 */
-	@Deprecated
-	@Override
-	public void showCommentView(Activity context, Entity entity) {
-		showCommentView(context, entity, null);
-	}
-
-	/**
-	 * Shows the comments list for the given entity.
-	 * @param context
-	 * @param entity
-	 * @param listener
-	 */
-	@Deprecated
-	@Override
-	public void showCommentView(Activity context, Entity entity, OnCommentViewActionListener listener) {
-		if(listener != null) {
-			listenerHolder.push(CommentView.COMMENT_LISTENER, listener);
-		}
-
-		try {
-			Intent i = newIntent(context, CommentActivity.class);
-			i.putExtra(Socialize.ENTITY_OBJECT, entity);
-			context.startActivity(i);
-		} 
-		catch (ActivityNotFoundException e) {
-			Log.e(Socialize.LOG_KEY, "Could not find CommentActivity.  Make sure you have added this to your AndroidManifest.xml");
-		} 
-	}
-
-	@Deprecated
-	@Override
-	public void showUserProfileView(Activity context, Long userId) {
-		UserUtils.showUserSettings(context);
-	}
-
-	@Deprecated
-	@Override
-	public void showUserProfileViewForResult(Activity context, Long userId, int requestCode) {
-		UserUtils.showUserSettingsForResult(context, requestCode);
-	}
-
 	@Override
 	public SocializeLogger getLogger() {
 		return logger;
@@ -1057,17 +1018,8 @@ public class SocializeServiceImpl implements SocializeService {
 	}
 
 	@Override
-	public void onResume(Activity context) {
-		if(paused) {
-			try {
-				FacebookUtils.extendAccessToken(context, null);
-			}
-			catch (Exception e) {
-				SocializeLogger.e("Error occurred on resume", e);
-			}
-			paused = false;
-		}
-		
+	public void onResume(final Activity context) {
+
 		if(!Socialize.getSocialize().isInitialized(context)) {
 			Socialize.getSocialize().initAsync(context, new SocializeInitListener() {
 				@Override
@@ -1076,13 +1028,32 @@ public class SocializeServiceImpl implements SocializeService {
 				}
 				
 				@Override
-				public void onInit(Context context, IOCContainer container) {
+				public void onInit(Context ctx, IOCContainer container) {
 					// This is the current context
-					setContext(context);
+					setContext(ctx);
+					
+					if(FacebookUtils.isAvailable(ctx)) {
+						try {
+							FacebookUtils.onResume(context, null);
+						}
+						catch (Exception e) {
+							SocializeLogger.e("Error occurred on resume", e);
+						}
+					}
 				}
 			});
 		}
 		else {
+			if(paused && FacebookUtils.isAvailable(context)) {
+				try {
+					FacebookUtils.onResume(context, null);
+				}
+				catch (Exception e) {
+					SocializeLogger.e("Error occurred on resume", e);
+				}
+				paused = false;
+			}			
+			
 			// This is the current context
 			setContext(context);
 		}

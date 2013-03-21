@@ -36,7 +36,6 @@ import com.socialize.error.SocializeException;
 import com.socialize.listener.SocializeAuthListener;
 import com.socialize.log.SocializeLogger;
 
-
 /**
  * @author Jason Polites
  */
@@ -45,15 +44,15 @@ public abstract class AbstractSocialNetworkSharer implements SocialNetworkSharer
 	private SocializeConfig config;
 	private SocializeLogger logger;
 	private AuthProviderInfoFactory<AuthProviderInfo> authProviderInfoFactory;
-	
+		
 	@Override
 	public void share(final Activity context, final Entity entity, final PropagationInfo urlSet, final String comment, boolean autoAuth, final ActionType type, final SocialNetworkListener listener) {
 
 		AuthProviderType authProviderType = AuthProviderType.valueOf(getNetwork());
 		
-		if(getSocialize().isSupported(authProviderType)) {
-
-			if(getSocialize().isAuthenticated(authProviderType)) {
+		if(getSocialize().isSupported(context, authProviderType)) {
+			
+			if(getSocialize().isAuthenticatedForWrite(authProviderType)) {
 				doShare(context, entity, urlSet, comment, listener, type);
 			}
 			else if(autoAuth) {
@@ -61,7 +60,7 @@ public abstract class AbstractSocialNetworkSharer implements SocialNetworkSharer
 				String consumerKey = config.getProperty(SocializeConfig.SOCIALIZE_CONSUMER_KEY);
 				String consumerSecret = config.getProperty(SocializeConfig.SOCIALIZE_CONSUMER_SECRET);
 				
-				AuthProviderInfo authProviderInfo = authProviderInfoFactory.getInstance();
+				AuthProviderInfo authProviderInfo = authProviderInfoFactory.getInstanceForWrite();
 				
 				getSocialize().authenticate(context, consumerKey, consumerSecret, authProviderInfo, new SocializeAuthListener() {
 

@@ -26,10 +26,10 @@ def create_android_config(key,secret,url,fb_token):
 	text+= '\nsocialize.location.enabled=false'
 	text+= '\nfacebook.app.id=387684787937421'
 	text+= '\nfacebook.token='+fb_token
-	text+= '\ntwitter.token=353351555-8L6E6HOphntfE5oUYDdPllX7x4gaXaWKHuRqqA'
-	text+= '\ntwitter.secret=a5BNRkL9gmWcnnIUDq3pSSoeQ5fuidB0fxWWTvLxk8'
-	text+= '\ntwitter.consumer.key=DRaBDMT6hzyLO1WAOehvfA' 
-	text+= '\ntwitter.consumer.secret=HhoT2YvgJDJildHnSsEAuuJ3crDFg9VLkae0PGNI' 
+	text+= '\ntwitter.token=581311757-TyDpccRovig1o6dkOyUG68ZfApdjnulzPJ9Lt7Ni'
+	text+= '\ntwitter.secret=AFapqY8U5LZh4tOm11MS1xT4tVESziFqIwaiuVbKTS4'
+	text+= '\ntwitter.consumer.key=PPMPm13TgUiOfZJhagwncA' 
+	text+= '\ntwitter.consumer.secret=C9SvNWkIU6pawJOaMem9IufQLknkJQ4N6uLkBM3MU' 
 	text+= '\ntest_value=sample'
 	text+= '\nuntrimmed=value '
 	text+= '\n'
@@ -108,7 +108,7 @@ def get_fb_access_token(fb_app_id, fb_app_secret):
     
     print 'FB app token is ' + resp[1][len('access_token='):]   
     
-    return resp[1][len('access_token='):]   
+    return resp[1][len('access_token='):]
 
 def get_fb_test_user(fb_app_id, fb_app_secret, fb_access_token):
     req_url='https://graph.facebook.com/%s/accounts/test-users?'%fb_app_id
@@ -228,7 +228,7 @@ def main(key,secret,url):
     req_url = url+like_url 
     make_request(client, req_url,method='POST', data=likes, outfile='likes.json')
     
-## Not create 3 entities for the purposes of testing entity sorting
+## Now create 3 entities for the purposes of testing entity sorting
 
     print '#'*20
     print '## CREATE ADDITIONAL ENTITIES ##'
@@ -266,7 +266,6 @@ def main(key,secret,url):
     req_url = url+share_url 
     make_request(client, req_url,method='POST', data=shares, outfile='shares.json')
 
-
     print '#'*20
     print '## CREATE VIEWS ##'
     print '#'*20  
@@ -286,9 +285,6 @@ if __name__ == "__main__":
     key = args[1]
     secret = args[2]
     url = args[3]             
-#    if len(args)>=6:
-#        fb_user_id = args[4]
-#        fb_token = args[5]
     create_android_config(key, secret, url, get_fb_user_access_token())
     key, secret, url = read_android_config()
     if url[-1]!='/':

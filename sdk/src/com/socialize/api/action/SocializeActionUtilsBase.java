@@ -80,9 +80,9 @@ public abstract class SocializeActionUtilsBase {
 			
 			for (SocialNetwork network : networks) {
 				AuthProviderType type = AuthProviderType.valueOf(network);
-				if(getSocialize().isSupported(type)) {
+				if(getSocialize().isSupported(context, type)) {
 					authSupported = true;
-					if(getSocialize().isAuthenticated(type)) {
+					if(getSocialize().isAuthenticatedForRead(type)) {
 						authRequired = false;
 						break;
 					}

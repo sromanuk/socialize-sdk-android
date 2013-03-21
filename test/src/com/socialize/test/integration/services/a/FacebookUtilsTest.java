@@ -45,7 +45,6 @@ import com.socialize.auth.DefaultUserProviderCredentials;
 import com.socialize.auth.UserProviderCredentials;
 import com.socialize.auth.facebook.FacebookAuthProvider;
 import com.socialize.auth.facebook.FacebookAuthProviderInfo;
-import com.socialize.auth.facebook.FacebookService;
 import com.socialize.config.SocializeConfig;
 import com.socialize.entity.Entity;
 import com.socialize.entity.ListResult;
@@ -61,11 +60,13 @@ import com.socialize.listener.share.ShareListListener;
 import com.socialize.networks.PostData;
 import com.socialize.networks.SocialNetwork;
 import com.socialize.networks.SocialNetworkPostListener;
-import com.socialize.networks.facebook.DefaultFacebookWallPoster;
 import com.socialize.networks.facebook.FacebookAccess;
+import com.socialize.networks.facebook.FacebookFacade;
 import com.socialize.networks.facebook.FacebookPermissionCallback;
 import com.socialize.networks.facebook.FacebookUtils;
 import com.socialize.networks.facebook.FacebookUtilsImpl;
+import com.socialize.networks.facebook.OnPermissionResult;
+import com.socialize.networks.facebook.v2.FacebookFacadeV2;
 import com.socialize.test.SocializeActivityTest;
 import com.socialize.test.ui.util.TestUtils;
 
@@ -84,7 +85,7 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 		// Stub in the FacebookAuthProvider
 		FacebookAuthProvider mockFacebookAuthProvider = new FacebookAuthProvider() {
 			@Override
-			public void authenticate(FacebookAuthProviderInfo info, AuthProviderListener listener) {
+			public void authenticate(Context context, FacebookAuthProviderInfo info, AuthProviderListener listener) {
 				addResult(0, info);
 				latch.countDown();
 			}
@@ -123,7 +124,7 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 		// Stub in the FacebookAuthProvider to ensure we DON'T auth with FB
 		FacebookAuthProvider mockFacebookAuthProvider = new FacebookAuthProvider() {
 			@Override
-			public void authenticate(FacebookAuthProviderInfo info, AuthProviderListener listener) {
+			public void authenticate(Context context, FacebookAuthProviderInfo info, AuthProviderListener listener) {
 				fail();
 			}
 		};
@@ -175,32 +176,32 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 		SocializeIOC.unregisterStub("facebookProvider");
 	}
 	
-	public void test_link_with_token_and_permission_check () throws Exception {
+	public void test_link_with_token_and_permission_check_v2 () throws Exception {
+		
+		FacebookAccess.forceV2();
 		
 		final CountDownLatch latch = new CountDownLatch(1);
 		final Activity context = TestUtils.getActivity(this);
 		
-		// Stub in the FacebookAuthProvider to ensure we DON'T auth with FB
-		FacebookAuthProvider mockFacebookAuthProvider = new FacebookAuthProvider() {
+		// Stub in the facade to ensure we DON'T auth with FB
+		FacebookFacadeV2 facebookV2Facade = new FacebookFacadeV2() {
+			
 			@Override
-			public void authenticate(FacebookAuthProviderInfo info, AuthProviderListener listener) {
+			public void getCurrentPermissions(Activity parent, String token, OnPermissionResult callback) {
+				callback.onSuccess(new String[]{"foobar_permission"});
+			}
+			
+			@Override
+			public void authenticateWithActivity(Activity context, FacebookAuthProviderInfo info, boolean sso, AuthProviderListener listener) {
 				// We expect an auth to FB because out permissions will not match.
 				addResult(0, info);
 				
 				// Make sure we call the listener to move the test along.
 				listener.onAuthSuccess(null);
-			}
+			}	
 		};
 		
-		DefaultFacebookWallPoster mockWallPoster = new DefaultFacebookWallPoster() {
-			@Override
-			public void getCurrentPermissions(Activity parent, String token, FacebookPermissionCallback callback) {
-				callback.onSuccess(new String[]{"foobar_permission"});
-			}
-		};
-		
-		SocializeIOC.registerStub("facebookWallPoster", mockWallPoster);
-		SocializeIOC.registerStub("facebookProvider", mockFacebookAuthProvider);
+		SocializeIOC.registerStub("facebookV2Facade", facebookV2Facade);
 		
 		// Set a mock FB ID
 		FacebookUtils.setAppId(TestUtils.getActivity(this), "foobar");
@@ -253,12 +254,11 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 		
 		Arrays.sort(permissions);
 		
-		for (String required : FacebookService.DEFAULT_PERMISSIONS) {
+		for (String required : FacebookFacade.DEFAULT_PERMISSIONS) {
 			assertTrue(Arrays.binarySearch(permissions, required) >= 0);
 		}
 		
-		SocializeIOC.unregisterStub("facebookProvider");
-		SocializeIOC.unregisterStub("facebookWallPoster");
+		SocializeIOC.unregisterStub("facebookV2Facade");
 	}	
 	
 	public void test_isAvailable() {
@@ -278,14 +278,15 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 		assertEquals(appId, ConfigUtils.getConfig(getContext()).getProperty(SocializeConfig.FACEBOOK_APP_ID));
 	}
 	
-	
+	@Deprecated
 	public void test_post_authed() throws Exception {
+		FacebookAccess.forceV2();
 		final CountDownLatch latch = new CountDownLatch(1);
 		final String token = TestUtils.getDummyFBToken(getContext());
 		// Stub in the FacebookAuthProvider
 		FacebookAuthProvider mockFacebookAuthProvider = new FacebookAuthProvider() {
 			@Override
-			public void authenticate(FacebookAuthProviderInfo info, AuthProviderListener listener) {
+			public void authenticate(Context context, FacebookAuthProviderInfo info, AuthProviderListener listener) {
 				AuthProviderResponse response = new AuthProviderResponse();
 				response.setToken(token);
 				listener.onAuthSuccess(response);
@@ -323,10 +324,13 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 		do_test_post();
 	}
 	
+	@Deprecated
 	public void test_post_not_authed() throws Exception {
+		FacebookAccess.forceV2();
 		do_test_post();
 	}
 	
+	@Deprecated
 	protected void do_test_post() throws Exception {
 		String entityKeyRandom = "foobar" + Math.random();
 		Entity entity = Entity.newInstance(entityKeyRandom, "foobar");
@@ -356,7 +360,7 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 		// Stub in the FacebookAuthProvider
 		FacebookAuthProvider mockFacebookAuthProvider = new FacebookAuthProvider() {
 			@Override
-			public void authenticate(FacebookAuthProviderInfo info, AuthProviderListener listener) {
+			public void authenticate(Context context, FacebookAuthProviderInfo info, AuthProviderListener listener) {
 				AuthProviderResponse response = new AuthProviderResponse();
 				response.setToken(token);
 				listener.onAuthSuccess(response);
@@ -468,12 +472,12 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 			}
 
 			@Override
-			public boolean isLinked(Context context) {
+			public boolean isLinkedForWrite(Context context, String... permissions) {
 				return false;
 			}
 
 			@Override
-			public void link(Activity context, SocializeAuthListener listener) {
+			public void linkForWrite(Activity context, SocializeAuthListener listener, String... permissions) {
 				listener.onError(mockError);
 				listener.onAuthFail(mockError);
 				listener.onCancel();
@@ -515,17 +519,18 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 			}
 
 			@Override
-			public boolean isLinked(Context context) {
+			public boolean isLinkedForWrite(Context context, String... permissions) {
 				return false;
 			}
 
 			@Override
-			public void link(Activity context, SocializeAuthListener listener) {
+			public void linkForWrite(Activity context, SocializeAuthListener listener, String... permissions) {
 				listener.onError(mockError);
 				listener.onAuthFail(mockError);
 				listener.onCancel();
 				listener.onAuthSuccess(null);
-			}
+			}			
+			
 		};
 		
 		FacebookAccess.setFacebookUtilsProxy(mockFacebookUtils);
@@ -561,14 +566,14 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 				addResult(0, graphPath);
 				addResult(1, postData);
 			}
-
+			
 			@Override
-			public boolean isLinked(Context context) {
+			public boolean isLinkedForRead(Context context, String... permissions) {
 				return false;
 			}
 
 			@Override
-			public void link(Activity context, SocializeAuthListener listener) {
+			public void linkForRead(Activity context, SocializeAuthListener listener, String... permissions) {
 				listener.onError(mockError);
 				listener.onAuthFail(mockError);
 				listener.onCancel();
@@ -605,18 +610,18 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 		FacebookUtilsImpl mockFacebookUtils = new FacebookUtilsImpl() {
 
 			@Override
-			public void delete(Activity context, String graphPath, Map<String, Object> postData, SocialNetworkPostListener listener) {
-				addResult(0, graphPath);
-				addResult(1, postData);
-			}
-
-			@Override
-			public boolean isLinked(Context context) {
+			public boolean isLinkedForWrite(Context context, String... permissions) {
 				return false;
 			}
 
 			@Override
-			public void link(Activity context, SocializeAuthListener listener) {
+			public void delete(Activity context, String graphPath, Map<String, Object> postData, SocialNetworkPostListener listener) {
+				addResult(0, graphPath);
+				addResult(1, postData);
+			}
+			
+			@Override
+			public void linkForWrite(Activity context, SocializeAuthListener listener, String... permissions) {
 				listener.onError(mockError);
 				listener.onAuthFail(mockError);
 				listener.onCancel();
@@ -636,8 +641,294 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 		assertSame(params, getResult(1));
 	}		
 	
+
+	public void testLinkIsLinkedForRead() throws Exception {
+		
+		// We have to use a real token here because we will be REALLY authenticating
+		final Activity context = TestUtils.getActivity(this);
+		final String newFBToken = TestUtils.getDummyFBToken(context);
+		
+		final CountDownLatch latch = new CountDownLatch(1);
+		
+		// We have to be initialized to set fb
+		Socialize.getSocialize().init(context);	
+		
+		FacebookUtils.linkForRead(context, newFBToken, false, new SocializeAuthListener() {
+			
+			@Override
+			public void onError(SocializeException error) {
+				error.printStackTrace();
+				latch.countDown();
+			}
+			
+			@Override
+			public void onCancel() {
+				latch.countDown();
+			}
+			
+			@Override
+			public void onAuthSuccess(SocializeSession session) {
+				latch.countDown();
+			}
+			
+			@Override
+			public void onAuthFail(SocializeException error) {
+				error.printStackTrace();
+				latch.countDown();
+			}
+		});		
+		
+		boolean result = latch.await(10, TimeUnit.SECONDS);
+		
+		assertTrue(result);		
+		
+		assertTrue(FacebookUtils.isLinkedForRead(context));
+		assertFalse(FacebookUtils.isLinkedForWrite(context));
+	}	
 	
+
+	public void testLinkIsLinkedForWrite() throws Exception {
+		
+		// We have to use a real token here because we will be REALLY authenticating
+		final Activity context = TestUtils.getActivity(this);
+		final String newFBToken = TestUtils.getDummyFBToken(context);
+		
+		final CountDownLatch latch = new CountDownLatch(1);
+		
+		// We have to be initialized to set fb
+		Socialize.getSocialize().init(context);	
+		
+		FacebookUtils.linkForWrite(context, newFBToken, false, new SocializeAuthListener() {
+			
+			@Override
+			public void onError(SocializeException error) {
+				error.printStackTrace();
+				latch.countDown();
+			}
+			
+			@Override
+			public void onCancel() {
+				latch.countDown();
+			}
+			
+			@Override
+			public void onAuthSuccess(SocializeSession session) {
+				latch.countDown();
+			}
+			
+			@Override
+			public void onAuthFail(SocializeException error) {
+				error.printStackTrace();
+				latch.countDown();
+			}
+		});		
+		
+		boolean result = latch.await(10, TimeUnit.SECONDS);
+		
+		assertTrue(result);		
+		
+		assertTrue(FacebookUtils.isLinkedForWrite(context));
+		assertTrue(FacebookUtils.isLinkedForRead(context));
+	}	
+	
+	public void testLinkIsLinkedForReadAndWrite() throws Exception {
+		
+		// We have to use a real token here because we will be REALLY authenticating
+		final Activity context = TestUtils.getActivity(this);
+		final String newFBToken = TestUtils.getDummyFBToken(context);
+		
+		final CountDownLatch latch = new CountDownLatch(1);
+		final CountDownLatch latch2 = new CountDownLatch(1);
+		
+		// We have to be initialized to set fb
+		Socialize.getSocialize().init(context);	
+		
+		FacebookUtils.linkForWrite(context, newFBToken, false, new SocializeAuthListener() {
+			
+			@Override
+			public void onError(SocializeException error) {
+				error.printStackTrace();
+				latch.countDown();
+			}
+			
+			@Override
+			public void onCancel() {
+				latch.countDown();
+			}
+			
+			@Override
+			public void onAuthSuccess(SocializeSession session) {
+				latch.countDown();
+			}
+			
+			@Override
+			public void onAuthFail(SocializeException error) {
+				error.printStackTrace();
+				latch.countDown();
+			}
+		});		
+		
+		boolean result = latch.await(10, TimeUnit.SECONDS);
+		
+		assertTrue(result);		
+		
+		FacebookUtils.linkForRead(context, newFBToken, false, new SocializeAuthListener() {
+			
+			@Override
+			public void onError(SocializeException error) {
+				error.printStackTrace();
+				latch2.countDown();
+			}
+			
+			@Override
+			public void onCancel() {
+				latch2.countDown();
+			}
+			
+			@Override
+			public void onAuthSuccess(SocializeSession session) {
+				latch2.countDown();
+			}
+			
+			@Override
+			public void onAuthFail(SocializeException error) {
+				error.printStackTrace();
+				latch2.countDown();
+			}
+		});				
+		
+		result = latch2.await(10, TimeUnit.SECONDS);
+		
+		assertTrue(result);		
+		
+		assertTrue(FacebookUtils.isLinkedForRead(context));
+		assertTrue(FacebookUtils.isLinkedForWrite(context));
+	}	
+	
+	public void testLinkIsLinkedForWriteAndRead() throws Exception {
+		
+		// We have to use a real token here because we will be REALLY authenticating
+		final Activity context = TestUtils.getActivity(this);
+		final String newFBToken = TestUtils.getDummyFBToken(context);
+		
+		final CountDownLatch latch = new CountDownLatch(1);
+		final CountDownLatch latch2 = new CountDownLatch(1);
+		
+		// We have to be initialized to set fb
+		Socialize.getSocialize().init(context);	
+		
+		FacebookUtils.linkForRead(context, newFBToken, false, new SocializeAuthListener() {
+			
+			@Override
+			public void onError(SocializeException error) {
+				error.printStackTrace();
+				latch.countDown();
+			}
+			
+			@Override
+			public void onCancel() {
+				latch.countDown();
+			}
+			
+			@Override
+			public void onAuthSuccess(SocializeSession session) {
+				latch.countDown();
+			}
+			
+			@Override
+			public void onAuthFail(SocializeException error) {
+				error.printStackTrace();
+				latch.countDown();
+			}
+		});		
+		
+		boolean result = latch.await(10, TimeUnit.SECONDS);
+		
+		assertTrue(result);		
+		
+		FacebookUtils.linkForWrite(context, newFBToken, false, new SocializeAuthListener() {
+			
+			@Override
+			public void onError(SocializeException error) {
+				error.printStackTrace();
+				latch2.countDown();
+			}
+			
+			@Override
+			public void onCancel() {
+				latch2.countDown();
+			}
+			
+			@Override
+			public void onAuthSuccess(SocializeSession session) {
+				latch2.countDown();
+			}
+			
+			@Override
+			public void onAuthFail(SocializeException error) {
+				error.printStackTrace();
+				latch2.countDown();
+			}
+		});				
+		
+		result = latch2.await(10, TimeUnit.SECONDS);
+		
+		assertTrue(result);		
+		
+		assertTrue(FacebookUtils.isLinkedForRead(context));
+		assertTrue(FacebookUtils.isLinkedForWrite(context));
+	}	
+		
+	
+	@Deprecated
+	public void testLinkIsLinkedV2() throws Exception {
+		FacebookAccess.forceV2();
+		
+		// We have to use a real token here because we will be REALLY authenticating
+		final Activity context = TestUtils.getActivity(this);
+		final String newFBToken = TestUtils.getDummyFBToken(context);
+		
+		final CountDownLatch latch = new CountDownLatch(1);
+		
+		// We have to be initialized to set fb
+		Socialize.getSocialize().init(context);	
+		
+		FacebookUtils.link(context, newFBToken, false, new SocializeAuthListener() {
+			
+			@Override
+			public void onError(SocializeException error) {
+				error.printStackTrace();
+				latch.countDown();
+			}
+			
+			@Override
+			public void onCancel() {
+				latch.countDown();
+			}
+			
+			@Override
+			public void onAuthSuccess(SocializeSession session) {
+				latch.countDown();
+			}
+			
+			@Override
+			public void onAuthFail(SocializeException error) {
+				error.printStackTrace();
+				latch.countDown();
+			}
+		});		
+		
+		boolean result = latch.await(10, TimeUnit.SECONDS);
+		
+		assertTrue(result);		
+		
+		assertTrue(FacebookUtils.isLinked(context));
+	}
+	
+	@Deprecated
 	public void testExtendAccessToken() throws Exception {
+		
+		FacebookAccess.forceV2();
 		
 		// We have to use a real token here because we will be REALLY authenticating
 		final Activity context = TestUtils.getActivity(this);
@@ -673,7 +964,6 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 			@Override
 			public void onCancel() {
 				latch.countDown();
-				
 			}
 			
 			@Override
@@ -692,6 +982,7 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 						
 						@Override
 						public void onError(SocializeException error) {
+							error.printStackTrace();
 							latch.countDown();
 						}
 						
@@ -708,10 +999,10 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 						
 						@Override
 						public void onAuthFail(SocializeException error) {
+							error.printStackTrace();
 							latch.countDown();
 						}
 					});
-					
 				}
 				else {
 					latch.countDown();
@@ -725,8 +1016,9 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 			}
 		});
 		
+		boolean result = latch.await(10, TimeUnit.SECONDS);
 		
-		assertTrue(latch.await(10, TimeUnit.SECONDS));
+		assertTrue(result);
 		
 		SocializeSession session = getResult(0);
 		assertNotNull(session);
@@ -737,7 +1029,7 @@ public class FacebookUtilsTest extends SocializeActivityTest {
 		assertEquals(newFBToken, creds.getAccessToken());
 	}
 	
-	
+	@Deprecated
 	public void testFacebookPermissionCallback() {
 		
 		// Taken from actual response:

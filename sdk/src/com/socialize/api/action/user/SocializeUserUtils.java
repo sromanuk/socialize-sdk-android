@@ -117,15 +117,15 @@ public class SocializeUserUtils extends SocializeActionUtilsBase implements User
 		
 		SocialNetwork[] networks = null;
 		
-		if(user.isAutoPostFacebook() && socialize.isAuthenticated(AuthProviderType.FACEBOOK)) {
-			if(user.isAutoPostTwitter() && socialize.isAuthenticated(AuthProviderType.TWITTER)) {
+		if(user.isAutoPostFacebook() && socialize.isAuthenticatedForRead(AuthProviderType.FACEBOOK)) {
+			if(user.isAutoPostTwitter() && socialize.isAuthenticatedForRead(AuthProviderType.TWITTER)) {
 				networks = new SocialNetwork[]{SocialNetwork.FACEBOOK, SocialNetwork.TWITTER};
 			}
 			else {
 				networks = new SocialNetwork[]{SocialNetwork.FACEBOOK};
 			}
 		}
-		else if(user.isAutoPostTwitter() && socialize.isAuthenticated(AuthProviderType.TWITTER)) {
+		else if(user.isAutoPostTwitter() && socialize.isAuthenticatedForRead(AuthProviderType.TWITTER)) {
 			networks = new SocialNetwork[]{SocialNetwork.TWITTER};
 		}
 		return networks;
@@ -137,7 +137,9 @@ public class SocializeUserUtils extends SocializeActionUtilsBase implements User
 	}
 	
 	protected User getCurrentUser(Context context, boolean failOnError) throws SocializeException  {
-		SocializeSession session = getSocialize().getSession();
+		
+		SocializeService socialize = getSocialize();
+		SocializeSession session = socialize.getSession();
 		
 		if(session != null) {
 			User user = session.getUser();
@@ -148,13 +150,18 @@ public class SocializeUserUtils extends SocializeActionUtilsBase implements User
 		
 		// We couldn't get a user, this shouldn't happen
 		if(failOnError) {
+			if(logger != null) {
+				logger.error("No user returned from getCurrentUser after second attempt");
+			}
 			throw new SocializeException("No user returned from getCurrentUser after second attempt");
 		}
 		else {
-			if(!Socialize.getSocialize().isInitialized(context)) {
-				Socialize.getSocialize().init(context);
+			if(!socialize.isInitialized(context)) {
+				socialize.init(context);
 			}
-			Socialize.getSocialize().authenticateSynchronous(context);
+			if(!socialize.isAuthenticated()) {
+				socialize.authenticateSynchronous(context);
+			}
 			return getCurrentUser(context, true);
 		}
 	}

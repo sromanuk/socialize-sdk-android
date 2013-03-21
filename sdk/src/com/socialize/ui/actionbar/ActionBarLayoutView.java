@@ -25,6 +25,7 @@ import java.text.DecimalFormat;
 import java.text.NumberFormat;
 import org.json.JSONObject;
 import android.app.Activity;
+import android.app.Dialog;
 import android.graphics.Color;
 import android.graphics.drawable.Drawable;
 import android.view.Gravity;
@@ -43,6 +44,8 @@ import com.socialize.entity.Like;
 import com.socialize.entity.View;
 import com.socialize.error.SocializeApiError;
 import com.socialize.error.SocializeException;
+import com.socialize.i18n.I18NConstants;
+import com.socialize.i18n.LocalizationService;
 import com.socialize.listener.entity.EntityGetListener;
 import com.socialize.listener.like.LikeAddListener;
 import com.socialize.listener.like.LikeDeleteListener;
@@ -53,17 +56,11 @@ import com.socialize.networks.SocialNetwork;
 import com.socialize.ui.actionbar.OnActionBarEventListener.ActionBarEvent;
 import com.socialize.ui.cache.CacheableEntity;
 import com.socialize.ui.cache.EntityCache;
+import com.socialize.ui.comment.OnCommentViewActionListener;
 import com.socialize.ui.dialog.ProgressDialogFactory;
 import com.socialize.util.DisplayUtils;
 import com.socialize.util.Drawables;
 import com.socialize.view.BaseView;
-import com.socialize.config.SocializeConfig;
-import java.util.Properties;
-import android.content.Context;
-import android.util.Log;
-import java.io.IOException;
-import java.io.InputStream;
-
 
 /**
  * @author Jason Polites
@@ -72,6 +69,8 @@ public class ActionBarLayoutView extends BaseView {
 	
 	static final NumberFormat countFormat = new DecimalFormat("##0.0K");
 
+	private LocalizationService localizationService;
+	
 	private ActionBarButton commentButton;
 	private ActionBarButton likeButton;
 	private ActionBarButton shareButton;
@@ -111,11 +110,7 @@ public class ActionBarLayoutView extends BaseView {
 	final String loadingText = "...";
 	
 	private OnActionBarEventListener onActionBarEventListener;
-
-	private static final int ACTION_BAR_BUTTONS_COUNT = 4;
-
-	private static Activity contextActivity;
-
+	private OnCommentViewActionListener onCommentViewActionListener;
 	
 	public ActionBarLayoutView(Activity context, ActionBarView actionBarView) {
 		this(context, actionBarView, new ActionBarOptions());
@@ -123,7 +118,6 @@ public class ActionBarLayoutView extends BaseView {
 	
 	public ActionBarLayoutView(Activity context, ActionBarView actionBarView, ActionBarOptions options) {
 		super(context);
-		contextActivity = context;
 		this.actionBarView = actionBarView;
 		this.options = options;
 	}
@@ -138,7 +132,13 @@ public class ActionBarLayoutView extends BaseView {
 			logger.debug("init called on " + getClass().getSimpleName());
 		}
 		
-		LayoutParams masterParams = new LayoutParams(LayoutParams.FILL_PARENT, displayUtils.getDIP(ActionBarView.ACTION_BAR_HEIGHT));
+		int height = ActionBarView.ACTION_BAR_HEIGHT;
+		
+		if(displayUtils != null) {
+			height = displayUtils.getDIP(ActionBarView.ACTION_BAR_HEIGHT);
+		}
+		
+		LayoutParams masterParams = new LayoutParams(LayoutParams.FILL_PARENT, height);
 		masterParams.gravity = options.getGravity() | Gravity.CENTER_VERTICAL;
 		setLayoutParams(masterParams);
 		setGravity(options.getGravity());
@@ -159,62 +159,14 @@ public class ActionBarLayoutView extends BaseView {
 		if(!options.isHideTicker()) {
 			viewIcon = getIcon(options.getViewIconResourceId(), "icon_view.png");
 		}
-
-		boolean showShareButton = true;
-		boolean showLikeButton = true;
-		boolean showCommentButton = true;
-		boolean showAlreadyLikedButton = true;
-
-		Properties props = new Properties();
-		InputStream is = null;
-		try {
-			is = contextActivity.getAssets().open(SocializeConfig.SOCIALIZE_PROPERTIES_PATH);
-			props.load(is);
-
-			String propertyString = props.getProperty(SocializeConfig.SOCIALIZE_SHARING_ENABLED);
-			showShareButton = (propertyString == null) ? true : Boolean.parseBoolean(propertyString);
-			Log.v("Socialize: ActionBarLayoutView", "should show share button? " + ((showShareButton) ? "YES" : "NO"));
-
-			propertyString = props.getProperty(SocializeConfig.SOCIALIZE_LIKE_ENABLED);
-			showLikeButton = (propertyString == null) ? true : Boolean.parseBoolean(propertyString);
-			Log.v("Socialize: ActionBarLayoutView", "should show like button? " + ((showLikeButton) ? "YES" : "NO"));
-
-			propertyString = props.getProperty(SocializeConfig.SOCIALIZE_COMMENTS_ENABLED);
-			showCommentButton = (propertyString == null) ? true : Boolean.parseBoolean(propertyString);
-			Log.v("Socialize: ActionBarLayoutView", "should show comment button? " + ((showCommentButton) ? "YES" : "NO"));
-
-			propertyString = props.getProperty(SocializeConfig.SOCIALIZE_ALREADY_LIKED_ENABLED);
-			showAlreadyLikedButton = (propertyString == null) ? true : Boolean.parseBoolean(propertyString);
-			Log.v("Socialize: ActionBarLayoutView", "should show already liked button? " + ((showAlreadyLikedButton) ? "YES" : "NO"));
-		} catch (IOException ignored) {
-			// ignored IOException
-		} finally {
-			props = null;
-			contextActivity = null;
-
-			if (is != null) {
-				try {
-					is.close();
-				} catch (IOException ignored) {
-					// ignored IOException
-				}
-			}
-		}
-
-		int enabledButtonsCount = showShareButton ? 1 : 0;
-		enabledButtonsCount += showLikeButton ? 1 : 0;
-		enabledButtonsCount += showCommentButton ? 1 : 0;
-		enabledButtonsCount += showAlreadyLikedButton ? 1 : 0;
-
-		int width = ActionBarView.ACTION_BAR_BUTTON_WIDTH * ACTION_BAR_BUTTONS_COUNT / enabledButtonsCount + 1;
-
+		
 		int accentHeight = displayUtils.getDIP(4);
 		int strokeWidth = displayUtils.getDIP(1);
-//		int width = ActionBarView.ACTION_BAR_BUTTON_WIDTH;
+		int width = ActionBarView.ACTION_BAR_BUTTON_WIDTH;
 		
 		int likeWidth = width - 5;
 		int commentWidth = width + 15;
-		int shareWidth = width - 5;
+		int shareWidth = width- 5;
 		
 		if(!options.isHideTicker()) {
 			ticker = tickerFactory.getBean(options.getBackgroundColor());
@@ -277,7 +229,7 @@ public class ActionBarLayoutView extends BaseView {
 					}
 					
 					if(!consumed) {
-						commentUtils.showCommentView(getActivity(), actionBarView.getEntity());
+						commentUtils.showCommentView(getActivity(), actionBarView.getEntity(), onCommentViewActionListener);
 					}
 				}
 			});			
@@ -298,7 +250,7 @@ public class ActionBarLayoutView extends BaseView {
 					}
 					
 					if(!consumed) {
-						doLike(likeButton);
+						doLike(likeButton, null);
 					}
 				}
 			});			
@@ -315,27 +267,42 @@ public class ActionBarLayoutView extends BaseView {
 					
 					boolean consumed = false;
 					
+					SocialNetworkDialogListener snListener = null;
+					
 					if(onActionBarEventListener != null) {
 						consumed = onActionBarEventListener.onClick(actionBarView, ActionBarEvent.SHARE);
+						
+						if(onActionBarEventListener instanceof SocialNetworkDialogListener) {
+							snListener = (SocialNetworkDialogListener) onActionBarEventListener;
+						}
 					}
 					if(!consumed) {
-						ShareUtils.showShareDialog(getActivity(), actionBarView.getEntity(), new SocialNetworkDialogListener() {
+						if(snListener == null) {
+							snListener = new SocialNetworkDialogListener() {
 
-							@Override
-							public void onError(SocializeException error) {
-								Toast.makeText(getActivity(), "Share Failed!  Please try again", Toast.LENGTH_SHORT).show();
-							}
+								@Override
+								public void onError(SocializeException error) {
+									Toast.makeText(getActivity(), localizationService.getString(I18NConstants.ACTIONBAR_SHARE_FAIL), Toast.LENGTH_SHORT).show();
+								}
 
-							@Override
-							public void onNetworkError(Activity context, SocialNetwork network, Exception error) {
-								Toast.makeText(context, "Share Failed!  Please try again", Toast.LENGTH_SHORT).show();
-							}
+								@Override
+								public void onNetworkError(Activity context, SocialNetwork network, Exception error) {
+									Toast.makeText(context, localizationService.getString(I18NConstants.ACTIONBAR_SHARE_FAIL), Toast.LENGTH_SHORT).show();
+								}
 
-							@Override
-							public void onAfterPost(Activity parent, SocialNetwork socialNetwork, JSONObject responseObject) {
-								Toast.makeText(parent, "Share Successful", Toast.LENGTH_SHORT).show();
-							}
-						});
+								@Override
+								public void onAfterPost(Activity parent, SocialNetwork socialNetwork, JSONObject responseObject) {
+									Toast.makeText(parent, localizationService.getString(I18NConstants.ACTIONBAR_SHARE_SUCCESS), Toast.LENGTH_SHORT).show();
+								}
+
+								@Override
+								public void onCancel(Dialog dialog) {
+									dialog.dismiss();
+								}
+							};
+						}
+						
+						ShareUtils.showShareDialog(getActivity(), actionBarView.getEntity(), snListener);
 					}
 				}
 			});
@@ -369,7 +336,7 @@ public class ActionBarLayoutView extends BaseView {
 			commentsItem.setText(loadingText);
 			
 			commentButton.init(commentWidth, 0.0f, textColor);
-			commentButton.setText("Comment");
+			commentButton.setText(localizationService.getString(I18NConstants.ACTIONBAR_COMMENT));
 		}
 		
 		if(likesItem != null) {
@@ -385,37 +352,32 @@ public class ActionBarLayoutView extends BaseView {
 			sharesItem.setText(loadingText);
 			
 			shareButton.init(shareWidth, 0.0f, textColor);
-			shareButton.setText("Share");
+			shareButton.setText(localizationService.getString(I18NConstants.ACTIONBAR_SHARE));
 		}
 		
 		if(ticker != null) {
 			ticker.init(LayoutParams.FILL_PARENT, 1.0f);
 		}
-
-		if (ticker != null && showAlreadyLikedButton) addView(ticker);
-		if (likeButton != null && showLikeButton) addView(likeButton);
-		if (shareButton != null && showShareButton) addView(shareButton);
-		if (commentButton != null && showCommentButton) addView(commentButton);
-
-//		if(ticker != null) addView(ticker);
-//		if(likeButton != null) addView(likeButton);
-//		if(shareButton != null) addView(shareButton);
-//		if(commentButton != null) addView(commentButton);
+		
+		if(ticker != null) addView(ticker);
+		if(likeButton != null) addView(likeButton);
+		if(shareButton != null) addView(shareButton);
+		if(commentButton != null) addView(commentButton);
 	}
 	
 	@Override
 	public void onViewLoad() {
 		super.onViewLoad();
-		doLoadSequence(false);
+		doLoadSequence(false, null);
 	}
 	
 	@Override
 	public void onViewUpdate() {
 		super.onViewUpdate();
-		doLoadSequence(true);
+		doLoadSequence(true, null);
 	}
 	
-	protected void doLoadSequence(boolean reload) {
+	protected void doLoadSequence(boolean reload, final OnActionBarReloadListener listener) {
 		
 		// Pre-load dialogs
 		shareUtils.preloadShareDialog(getActivity());
@@ -443,7 +405,7 @@ public class ActionBarLayoutView extends BaseView {
 				}	
 			}
 			
-			updateEntity(userProvidedEntity, reload);
+			updateEntity(userProvidedEntity, reload, listener);
 		}
 		else {
 			if(logger != null) {
@@ -452,7 +414,15 @@ public class ActionBarLayoutView extends BaseView {
 		}
 	}
 	
-	protected void updateEntity(final Entity entity, boolean reload) {
+	@Override
+	public void onViewError(Exception e) {
+		super.onViewError(e);
+		if(onActionBarEventListener != null) {
+			onActionBarEventListener.onLoadFail(e);
+		}
+	}
+
+	protected void updateEntity(final Entity entity, boolean reload, final OnActionBarReloadListener listener) {
 
 		CacheableEntity localEntity = getLocalEntity();
 		
@@ -461,23 +431,23 @@ public class ActionBarLayoutView extends BaseView {
 				@Override
 				public void onError(SocializeException error) {
 					SocializeLogger.e(error.getMessage(), error);
-					getLike(entity.getKey());
+					getLike(entity.getKey(), listener);
 				}
 				
 				@Override
 				public void onCreate(View view) {
 					// Entity will be set in like
-					getLike(view.getEntity().getKey());
+					getLike(view.getEntity().getKey(), listener);
 				}
 			});
 		}
 		else {
 			if(reload) {
 				if(localEntity.isLiked()) {
-					getLike(entity.getKey());
+					getLike(entity.getKey(), listener);
 				}
 				else {
-					getEntity(entity.getKey());
+					getEntity(entity.getKey(), listener);
 				}
 			}
 			else {
@@ -485,24 +455,28 @@ public class ActionBarLayoutView extends BaseView {
 				if(onActionBarEventListener != null) {
 					onActionBarEventListener.onGetEntity(actionBarView, localEntity.getEntity());
 				}					
-				setEntityData(localEntity);
+				setEntityData(localEntity, listener);
 			}
 		}
 	}
 	
 	public void reload() {
+		reload(null);
+	}
+	
+	public void reload(OnActionBarReloadListener listener) {
 		if(actionBarView.getEntity() != null) {
 			entityCache.remove(actionBarView.getEntity().getKey());
 		}
-		doLoadSequence(true);
+		doLoadSequence(true, listener);
 	}
 
-	protected void doLike(final ActionBarButton button) {
+	protected void doLike(final ActionBarButton button, final OnActionBarReloadListener listener) {
 		final CacheableEntity localEntity = getLocalEntity();
 		
 		if(localEntity != null && localEntity.isLiked()) {
 			// Unlike
-			doUnLike(button, localEntity);
+			doUnLike(button, localEntity, listener);
 			return;
 		}
 		
@@ -526,7 +500,7 @@ public class ActionBarLayoutView extends BaseView {
 				CacheableEntity localEntity = setLocalEntity(like.getEntity());
 				localEntity.setLiked(true);
 				localEntity.setLikeId(like.getId());
-				setEntityData(localEntity);
+				setEntityData(localEntity, listener);
 				
 				button.hideLoading();
 				
@@ -537,7 +511,7 @@ public class ActionBarLayoutView extends BaseView {
 		});
 	}
 	
-	protected void doUnLike(final ActionBarButton button, final CacheableEntity localEntity) {
+	protected void doUnLike(final ActionBarButton button, final CacheableEntity localEntity, final OnActionBarReloadListener listener) {
 		button.showLoading();
 		
 		LikeUtils.unlike(getActivity(), localEntity.getKey(), new LikeDeleteListener() {
@@ -547,7 +521,7 @@ public class ActionBarLayoutView extends BaseView {
 				
 				if(localEntity != null) {
 					localEntity.setLiked(false);
-					setEntityData(localEntity);
+					setEntityData(localEntity, listener);
 				}
 
 				button.hideLoading();
@@ -557,7 +531,7 @@ public class ActionBarLayoutView extends BaseView {
 			public void onDelete() {
 				if(localEntity != null) {
 					localEntity.setLiked(false);
-					setEntityData(localEntity);
+					setEntityData(localEntity, listener);
 				}
 
 				button.hideLoading();
@@ -588,7 +562,7 @@ public class ActionBarLayoutView extends BaseView {
 		return entityCache.putEntity(entity);
 	}
 	
-	protected void getLike(final String entityKey) {
+	protected void getLike(final String entityKey, final OnActionBarReloadListener listener) {
 		
 		// Get the like
 		LikeUtils.getLike(getActivity(), entityKey, new LikeGetListener() {
@@ -599,7 +573,7 @@ public class ActionBarLayoutView extends BaseView {
 					CacheableEntity putEntity = setLocalEntity(like.getEntity());
 					putEntity.setLiked(true);
 					putEntity.setLikeId(like.getId());
-					setEntityData(putEntity);
+					setEntityData(putEntity, listener);
 					
 					if(onActionBarEventListener != null) {
 						onActionBarEventListener.onGetLike(actionBarView, like);
@@ -610,7 +584,7 @@ public class ActionBarLayoutView extends BaseView {
 					}	
 				}
 				else {
-					getEntity(entityKey);
+					getEntity(entityKey, listener);
 				}
 			}
 			
@@ -619,10 +593,14 @@ public class ActionBarLayoutView extends BaseView {
 				if(error instanceof SocializeApiError) {
 					if(((SocializeApiError)error).getResultCode() == 404) {
 						// no like
-						getEntity(entityKey);
+						getEntity(entityKey, listener);
 						// Don't log error
 						return;
 					}
+				}
+
+				if(onActionBarEventListener != null) {
+					onActionBarEventListener.onLoadFail(error);
 				}
 				
 				logError("Error retrieving entity data", error);
@@ -630,12 +608,12 @@ public class ActionBarLayoutView extends BaseView {
 		});
 	}
 	
-	protected void getEntity(String entityKey) {
+	protected void getEntity(String entityKey, final OnActionBarReloadListener listener) {
 		EntityUtils.getEntity(getActivity(), entityKey, new EntityGetListener() {
 			@Override
 			public void onGet(Entity entity) {
 				CacheableEntity putEntity = setLocalEntity(entity);
-				setEntityData(putEntity);
+				setEntityData(putEntity, listener);
 				
 				if(onActionBarEventListener != null) {
 					onActionBarEventListener.onGetEntity(actionBarView, entity);
@@ -647,11 +625,15 @@ public class ActionBarLayoutView extends BaseView {
 				if(logger != null && logger.isDebugEnabled()) {
 					logger.debug("Error retrieving entity data.  This may be ok if the entity is new", error);
 				}
+				
+				if(onActionBarEventListener != null) {
+					onActionBarEventListener.onLoadFail(error);
+				}
 			}
 		});
 	}
 	
-	protected void setEntityData(CacheableEntity ce) {
+	protected void setEntityData(CacheableEntity ce, OnActionBarReloadListener listener) {
 		Entity entity = ce.getEntity();
 		
 		actionBarView.setEntity(entity);
@@ -661,19 +643,23 @@ public class ActionBarLayoutView extends BaseView {
 		if(stats != null) {
 			if(viewsItem != null) viewsItem.setText(getCountText(stats.getViews()));
 			if(commentsItem != null) commentsItem.setText(getCountText(stats.getComments()));
-			if(likesItem != null) likesItem.setText(getCountText(stats.getLikes() + ((ce.isLiked()) ? 1 : 0)));
+			if(likesItem != null) likesItem.setText(getCountText(stats.getLikes()));
 			if(sharesItem != null) sharesItem.setText(getCountText(stats.getShares()));
 		}
 		
 		if(likeButton != null) {
 			if(ce.isLiked()) {
-				likeButton.setText("Unlike");
+				likeButton.setText(localizationService.getString(I18NConstants.ACTIONBAR_UNLIKE));
 				likeButton.setIcon(likeIconHi);
 			}
 			else {
-				likeButton.setText("Like");
+				likeButton.setText(localizationService.getString(I18NConstants.ACTIONBAR_LIKE));
 				likeButton.setIcon(likeIcon);
 			}
+		}
+		
+		if(listener != null) {
+			listener.onReload(entity);
 		}
 	}
 	
@@ -779,5 +765,17 @@ public class ActionBarLayoutView extends BaseView {
 	
 	public OnActionBarEventListener getOnActionBarEventListener() {
 		return onActionBarEventListener;
+	}
+
+	public OnCommentViewActionListener getOnCommentViewActionListener() {
+		return onCommentViewActionListener;
+	}
+	
+	public void setOnCommentViewActionListener(OnCommentViewActionListener onCommentViewActionListener) {
+		this.onCommentViewActionListener = onCommentViewActionListener;
+	}
+	
+	public void setLocalizationService(LocalizationService localizationService) {
+		this.localizationService = localizationService;
 	}
 }

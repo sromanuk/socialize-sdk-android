@@ -102,6 +102,7 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 		super();
 	}
 	
+	@Override
 	public void init(Context context) {
 		this.context = context;
 	}
@@ -155,7 +156,7 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 			throw new SocializeException("Socialize not initialized");
 		}
 		
-		data.setAuthProviderInfo(authProviderInfoBuilder.getFactory(AuthProviderType.SOCIALIZE).getInstance());
+		data.setAuthProviderInfo(authProviderInfoBuilder.getFactory(AuthProviderType.SOCIALIZE).getInstanceForRead());
 		return authenticate(endpoint, key, secret, data, uuid);
 	}
 
@@ -187,28 +188,6 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 		}
 		return null;
 	}
-	
-	
-//	@Override
-//	public void updateSession(SocializeSession loaded, AuthProviderData data) {
-//		AuthProviderInfo info = data.getAuthProviderInfo();
-//		if(info != null) {
-//			if(!info.getType().equals(AuthProviderType.SOCIALIZE)) {
-//				updateSessionAuthData(loaded, data, info);
-//			}
-//		}
-//	}
-	
-//	public void updateSessionAuthData(SocializeSession loaded, AuthProviderData data, AuthProviderInfo info) {
-//		UserProviderCredentialsMap userProviderCredentialsMap = loaded.getUserProviderCredentials();
-//		if(userProviderCredentialsMap != null) {
-//			UserProviderCredentials userProviderCredentials = userProviderCredentialsMap.get(info.getType());
-//			if(userProviderCredentials != null && !userProviderCredentials.getAuthProviderInfo().matches(info)) {
-//				// Merge the info
-//				userProviderCredentials.getAuthProviderInfo().merge(info);
-//			}
-//		}
-//	}
 	
 	@Override
 	public boolean validateSession(SocializeSession session, AuthProviderData data) {
@@ -393,7 +372,21 @@ public abstract class BaseSocializeProvider<T extends SocializeObject> implement
 			userProviderCredentials.setAccessToken(data.getToken3rdParty());
 			userProviderCredentials.setTokenSecret(data.getSecret3rdParty());
 			userProviderCredentials.setUserId(data.getUserId3rdParty());
-			userProviderCredentials.setAuthProviderInfo(data.getAuthProviderInfo());
+			
+			UserProviderCredentials current = session.getUserProviderCredentials().get(info.getType());
+			
+			if(current != null) {
+				AuthProviderInfo authProviderInfo = current.getAuthProviderInfo();
+				
+				if(authProviderInfo != null) {
+					authProviderInfo.merge(data.getAuthProviderInfo());
+				}
+				
+				userProviderCredentials.setAuthProviderInfo(authProviderInfo);
+			}
+			else {
+				userProviderCredentials.setAuthProviderInfo(data.getAuthProviderInfo());
+			}
 			
 			session.getUserProviderCredentials().put(info.getType(), userProviderCredentials);
 		}

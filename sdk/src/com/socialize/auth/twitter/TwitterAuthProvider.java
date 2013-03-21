@@ -36,29 +36,36 @@ import com.socialize.listener.AuthProviderListener;
  */
 public class TwitterAuthProvider implements AuthProvider<TwitterAuthProviderInfo> {
 	
-	private Context context;
 	private TwitterAuthUtils twitterAuthUtils;
 	private AuthProviderInfoBuilder authProviderInfoBuilder;
 	
-	public void init(Context context) {
-		this.context = context;
-	}
-
 	/* (non-Javadoc)
 	 * @see com.socialize.auth.AuthProvider#authenticate(com.socialize.auth.AuthProviderInfo, com.socialize.listener.AuthProviderListener)
 	 */
 	@Override
-	public void authenticate(TwitterAuthProviderInfo info, final AuthProviderListener listener) {
+	public void authenticate(Context context, TwitterAuthProviderInfo info, final AuthProviderListener listener) {
 		 twitterAuthUtils.showAuthDialog(context, info, newTwitterAuthListener(listener));
 	}
 	
+	
 	@Override
-	public boolean validate(TwitterAuthProviderInfo info) {
+	public boolean validateForRead(TwitterAuthProviderInfo info, String...permissions) {
 		if(authProviderInfoBuilder != null) {
-			AuthProviderInfo expected = authProviderInfoBuilder.getFactory(AuthProviderType.TWITTER).getInstance();
+			AuthProviderInfo expected = authProviderInfoBuilder.getFactory(AuthProviderType.TWITTER).getInstanceForRead();
 			return info.matches(expected);
 		}
-		return true;
+		return true;		
+	}
+
+	@Override
+	public boolean validateForWrite(TwitterAuthProviderInfo info, String...permissions) {
+		return validateForRead(info, permissions);
+	}
+
+	@Deprecated
+	@Override
+	public boolean validate(TwitterAuthProviderInfo info) {
+		return validateForWrite(info);
 	}
 
 	protected TwitterAuthListener newTwitterAuthListener(final AuthProviderListener listener) {

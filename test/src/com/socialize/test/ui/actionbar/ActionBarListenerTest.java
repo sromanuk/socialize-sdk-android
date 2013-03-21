@@ -63,7 +63,7 @@ public class ActionBarListenerTest extends SocializeActivityTest {
 		entity.setName("foobar_name");
 		
 		intent.putExtra(Socialize.ENTITY_OBJECT, entity);
-		ConfigUtils.getConfig(getContext()).setProperty(SocializeConfig.SOCIALIZE_REGISTER_NOTIFICATION, "false");
+		ConfigUtils.getConfig(getContext()).setProperty(SocializeConfig.SOCIALIZE_CHECK_NOTIFICATIONS, "false");
 		TestUtils.getActivity(this).startActivity(intent);		
 		
 		assertNotNull(waitForActionBar(10000));
@@ -81,7 +81,7 @@ public class ActionBarListenerTest extends SocializeActivityTest {
 		
 		SocializeAccess.setBeanOverrides("socialize_ui_mock_beans.xml", "socialize_ui_mock_socialize_beans.xml");
 		
-		ConfigUtils.getConfig(getContext()).setProperty(SocializeConfig.SOCIALIZE_REGISTER_NOTIFICATION, "false");
+		ConfigUtils.getConfig(getContext()).setProperty(SocializeConfig.SOCIALIZE_CHECK_NOTIFICATIONS, "false");
 		
 		TestUtils.getActivity(this).startActivity(intent);		
 		
@@ -109,6 +109,9 @@ public class ActionBarListenerTest extends SocializeActivityTest {
 				reloadLatch.countDown();
 			}
 			
+			@Override
+			public void onLoadFail(Exception error) {}
+
 			@Override
 			public void onPostUnlike(ActionBarView actionBar) {}
 			

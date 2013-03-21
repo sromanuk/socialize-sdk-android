@@ -39,6 +39,7 @@ import com.socialize.entity.User;
 import com.socialize.error.SocializeException;
 import com.socialize.listener.ListenerHolder;
 import com.socialize.listener.comment.CommentAddListener;
+import com.socialize.listener.comment.CommentDeleteListener;
 import com.socialize.listener.comment.CommentGetListener;
 import com.socialize.listener.comment.CommentListListener;
 import com.socialize.log.SocializeLogger;
@@ -116,6 +117,11 @@ public class SocializeCommentUtils extends SocializeActionUtilsBase implements C
 	}
 	
 	@Override
+	public void deleteComment(Activity context, long id, CommentDeleteListener listener) {
+		commentSystem.deleteComment(getSocialize().getSession(), id, listener);
+	}
+
+	@Override
 	public void addComment(Activity context, Entity entity, String text, CommentAddListener listener) {
 		addComment(context, entity, text, getUserCommentOptions(context), listener);
 	}
@@ -160,7 +166,12 @@ public class SocializeCommentUtils extends SocializeActionUtilsBase implements C
 						doCommentWithShareDialog(context, session, entity, text, commentOptions, listener);
 					}
 					else {
-						doCommentWithoutShareDialog(context, session, entity, text, commentOptions, listener, networks);
+						if(networks == null || networks.length == 0) {
+							doCommentWithoutShareDialog(context, session, entity, text, commentOptions, listener, UserUtils.getAutoPostSocialNetworks(context));
+						}
+						else {
+							doCommentWithoutShareDialog(context, session, entity, text, commentOptions, listener, networks);
+						}						
 					}
 				}
 			}, !(config.isAllowSkipAuthOnComments() && config.isAllowSkipAuthOnAllActions()));
@@ -170,7 +181,12 @@ public class SocializeCommentUtils extends SocializeActionUtilsBase implements C
 				doCommentWithShareDialog(context, session, entity, text, commentOptions, listener);
 			}
 			else {
-				doCommentWithoutShareDialog(context, session, entity, text, commentOptions, listener, networks);
+				if(networks == null || networks.length == 0) {
+					doCommentWithoutShareDialog(context, session, entity, text, commentOptions, listener, UserUtils.getAutoPostSocialNetworks(context));
+				}
+				else {
+					doCommentWithoutShareDialog(context, session, entity, text, commentOptions, listener, networks);
+				}					
 			}
 		}			
 	}
@@ -230,7 +246,7 @@ public class SocializeCommentUtils extends SocializeActionUtilsBase implements C
 						listener.onCancel();
 					}
 				}
-			}, ShareUtils.SOCIAL|ShareUtils.SHOW_REMEMBER);
+			}, ShareUtils.SOCIAL|ShareUtils.SHOW_REMEMBER|ShareUtils.ALWAYS_CONTINUE);
 		}
 		else {
 			doCommentWithoutShareDialog(context, session, entity, text, commentOptions, listener);

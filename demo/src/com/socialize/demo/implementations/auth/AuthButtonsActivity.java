@@ -56,7 +56,6 @@ public class AuthButtonsActivity extends DemoActivity {
 		final Button btnTwitter = (Button) findViewById(R.id.btnTwitter);
 		final Button btnAuth = (Button) findViewById(R.id.btnAuth);
 		
-		
 		btnAuth.setOnClickListener(new OnClickListener() {
 			
 			@Override
@@ -92,7 +91,7 @@ public class AuthButtonsActivity extends DemoActivity {
 		
 		
 		// Check if we are signed into Facebook
-		if(FacebookUtils.isLinked(this)) {
+		if(FacebookUtils.isLinkedForRead(this)) {
 			btnFacebook.setText("Sign OUT of Facebook");
 		}
 		else {
@@ -114,7 +113,7 @@ public class AuthButtonsActivity extends DemoActivity {
 					
 					btnFacebook.setEnabled(false);
 					
-					FacebookUtils.link(AuthButtonsActivity.this, new SocializeAuthListener() {
+					FacebookUtils.linkForRead(AuthButtonsActivity.this, new SocializeAuthListener() {
 						
 						@Override
 						public void onError(SocializeException error) {
@@ -132,6 +131,7 @@ public class AuthButtonsActivity extends DemoActivity {
 						public void onAuthSuccess(SocializeSession session) {
 							btnFacebook.setText("Sign OUT of Facebook");
 							btnFacebook.setEnabled(true);
+							DemoUtils.showToast(AuthButtonsActivity.this, "Login Successful");
 						}
 						
 						@Override
@@ -140,7 +140,6 @@ public class AuthButtonsActivity extends DemoActivity {
 							btnFacebook.setEnabled(true);
 						}
 					});
-					
 				}
 				else {
 					FacebookUtils.unlink(AuthButtonsActivity.this);

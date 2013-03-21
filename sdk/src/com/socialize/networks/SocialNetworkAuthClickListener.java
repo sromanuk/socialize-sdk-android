@@ -22,7 +22,6 @@
 package com.socialize.networks;
 
 import android.app.Activity;
-import android.app.ProgressDialog;
 import android.view.View;
 import android.view.View.OnClickListener;
 import com.socialize.Socialize;
@@ -33,7 +32,6 @@ import com.socialize.error.SocializeException;
 import com.socialize.listener.SocializeAuthListener;
 import com.socialize.networks.facebook.FacebookUtils;
 import com.socialize.networks.twitter.TwitterUtils;
-import com.socialize.ui.dialog.SimpleDialogFactory;
 
 /**
  * @author Jason Polites
@@ -42,8 +40,6 @@ import com.socialize.ui.dialog.SimpleDialogFactory;
 public abstract class SocialNetworkAuthClickListener implements OnClickListener {
 
 	private SocializeAuthListener listener;
-	private SimpleDialogFactory<ProgressDialog> dialogFactory;
-	private ProgressDialog dialog; 
 
 	@Override
 	public void onClick(final View view) {
@@ -53,11 +49,10 @@ public abstract class SocialNetworkAuthClickListener implements OnClickListener 
 		SocialNetwork network = getSocialNetwork();
 		SocializeAuthListener authListener = getAuthListener(view);
 		
-		if(!getSocialize().isAuthenticated(AuthProviderType.valueOf(network))) {
-			dialog = dialogFactory.show(view.getContext(), "Authentication", "Authenticating...");
+		if(!getSocialize().isAuthenticatedForWrite(AuthProviderType.valueOf(network))) {
 			switch (network) {
 				case FACEBOOK:
-					FacebookUtils.link((Activity) view.getContext(), getAuthListener(view));
+					FacebookUtils.linkForRead((Activity) view.getContext(), getAuthListener(view));
 					break;
 				case TWITTER:
 					TwitterUtils.link((Activity) view.getContext(), getAuthListener(view));
@@ -74,10 +69,6 @@ public abstract class SocialNetworkAuthClickListener implements OnClickListener 
 			
 			@Override
 			public void onError(SocializeException error) {
-				if(dialog != null) {
-					dialog.dismiss();
-				}
-				
 				if(listener != null) {
 					listener.onError(error);
 				}
@@ -86,9 +77,6 @@ public abstract class SocialNetworkAuthClickListener implements OnClickListener 
 			
 			@Override
 			public void onAuthSuccess(SocializeSession session) {
-				if(dialog != null) {
-					dialog.dismiss();
-				}
 				if(listener != null) {
 					listener.onAuthSuccess(session);
 				}
@@ -97,9 +85,6 @@ public abstract class SocialNetworkAuthClickListener implements OnClickListener 
 			
 			@Override
 			public void onAuthFail(SocializeException error) {
-				if(dialog != null) {
-					dialog.dismiss();
-				}
 				if(listener != null) {
 					listener.onAuthFail(error);
 				}
@@ -108,9 +93,6 @@ public abstract class SocialNetworkAuthClickListener implements OnClickListener 
 
 			@Override
 			public void onCancel() {
-				if(dialog != null) {
-					dialog.dismiss();
-				}
 				if(listener != null) {
 					listener.onCancel();
 				}
@@ -123,10 +105,6 @@ public abstract class SocialNetworkAuthClickListener implements OnClickListener 
 	
 	protected SocializeService getSocialize() {
 		return Socialize.getSocialize();
-	}
-
-	public void setDialogFactory(SimpleDialogFactory<ProgressDialog> dialogFactory) {
-		this.dialogFactory = dialogFactory;
 	}
 
 	public void setListener(SocializeAuthListener listener) {

@@ -25,7 +25,6 @@ import android.app.Activity;
 import android.content.Context;
 import android.content.Intent;
 import android.os.Bundle;
-import android.view.View;
 import com.socialize.android.ioc.IOCContainer;
 import com.socialize.api.SocializeSession;
 import com.socialize.api.SocializeSessionConsumer;
@@ -33,17 +32,11 @@ import com.socialize.api.action.ShareType;
 import com.socialize.auth.AuthProviderInfo;
 import com.socialize.auth.AuthProviderType;
 import com.socialize.auth.UserProviderCredentials;
-import com.socialize.entity.Entity;
-import com.socialize.entity.SocializeAction;
-import com.socialize.entity.User;
 import com.socialize.error.SocializeException;
 import com.socialize.listener.SocializeAuthListener;
 import com.socialize.listener.SocializeInitListener;
 import com.socialize.log.SocializeLogger;
 import com.socialize.ui.SocializeEntityLoader;
-import com.socialize.ui.actionbar.ActionBarListener;
-import com.socialize.ui.actionbar.ActionBarOptions;
-import com.socialize.ui.comment.OnCommentViewActionListener;
 
 /**
  * The main Socialize Service.  This is the simplest entry point into the Socialize API.
@@ -133,7 +126,29 @@ public interface SocializeService extends SocializeSessionConsumer {
 	 * @param authListener The callback for authentication outcomes.
 	 * @param permissions One or more custom permissions used by the call.  (Currently only used by FACEBOOK)
 	 */
+	@Deprecated
 	public void authenticate(Context context, AuthProviderType authProvider, SocializeAuthListener authListener, String...permissions);
+	
+	/**
+	 * Authenticates the application against the API.
+	 * NOTE:  This assumes the consumer key/secret have been specified in assets/socialize.properties
+	 * @param context The current context.
+	 * @param authProvider The authentication provider.  Use AuthProviderType.SOCIALIZE for anonymous user auth.
+	 * @param authListener The callback for authentication outcomes.
+	 * @param permissions One or more custom permissions used by the call.  (Currently only used by FACEBOOK)
+	 */
+	public void authenticateForRead(Context context, AuthProviderType authProvider, SocializeAuthListener authListener, String...permissions);
+	
+	/**
+	 * Authenticates the application against the API.
+	 * NOTE:  This assumes the consumer key/secret have been specified in assets/socialize.properties
+	 * @param context The current context.
+	 * @param authProvider The authentication provider.  Use AuthProviderType.SOCIALIZE for anonymous user auth.
+	 * @param authListener The callback for authentication outcomes.
+	 * @param permissions One or more custom permissions used by the call.  (Currently only used by FACEBOOK)
+	 */
+	public void authenticateForWrite(Context context, AuthProviderType authProvider, SocializeAuthListener authListener, String...permissions);
+	
 	
 	/**
 	 * Authenticates the application against the API.
@@ -171,7 +186,22 @@ public interface SocializeService extends SocializeSessionConsumer {
 	 * @param providerType
 	 * @return true if the current user is already authenticated using the provider specified.
 	 */
+	@Deprecated
 	public boolean isAuthenticated(AuthProviderType providerType);
+	
+	/**
+	 * Returns true if the current user is already authenticated using the provider specified for READ operations.
+	 * @param providerType
+	 * @return
+	 */
+	public boolean isAuthenticatedForRead(AuthProviderType providerType, String...permissions);
+	
+	/**
+	 * Returns true if the current user is already authenticated using the provider specified for WRITE operations.
+	 * @param providerType
+	 * @return
+	 */
+	public boolean isAuthenticatedForWrite(AuthProviderType providerType, String...permissions);	
 	
 	/**
 	 * Returns a reference to the current session.
@@ -199,10 +229,11 @@ public interface SocializeService extends SocializeSessionConsumer {
 	
 	/**
 	 * Returns true if the given provider type is supported and has been configured correctly.
+	 * @param context TODO
 	 * @param type
 	 * @return True if the given provider type is supported and has been configured correctly.
 	 */
-	public boolean isSupported(AuthProviderType type);
+	public boolean isSupported(Context context, AuthProviderType type);
 	
 	/**
 	 * Returns true if Socialize is supported on this device.
@@ -269,27 +300,4 @@ public interface SocializeService extends SocializeSessionConsumer {
 	 * Should be called in the onDestroy method of the containing activity
 	 */
 	public void onDestroy(Activity context);
-	
-	@Deprecated
-	public View showActionBar(Activity parent, View original, Entity entity);
-	@Deprecated
-	public View showActionBar(Activity parent, View original, Entity entity, ActionBarOptions options);
-	@Deprecated
-	public View showActionBar(Activity parent, View original, Entity entity, ActionBarOptions options, ActionBarListener listener);
-	@Deprecated
-	public View showActionBar(Activity parent, int resId, Entity entity, ActionBarOptions options, ActionBarListener listener);
-	@Deprecated
-	public View showActionBar(Activity parent, int resId, Entity entity, ActionBarOptions options);
-	@Deprecated
-	public View showActionBar(Activity parent, int resId, Entity entity);
-	@Deprecated
-	public void showUserProfileViewForResult(Activity context, Long userId, int requestCode);
-	@Deprecated
-	public void showUserProfileView(Activity context, Long userId);
-	@Deprecated
-	public void showCommentView(Activity context, Entity entity, OnCommentViewActionListener listener);
-	@Deprecated
-	public void showCommentView(Activity context, Entity entity);
-	@Deprecated
-	public void showActionDetailView(Activity context, User user, SocializeAction action);
 }

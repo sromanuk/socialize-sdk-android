@@ -32,11 +32,12 @@ public interface AuthProvider<I extends AuthProviderInfo> {
 
 	/**
 	 * Authenticates using a 3rd party provider.
-	 * @param authRequest
+	 * @param context The current context
 	 * @param info The info for the account/app to be authenticated.
 	 * @param listener A listener to handle the outcome.
+	 * @param authRequest
 	 */
-	public void authenticate(I info, AuthProviderListener listener);
+	public void authenticate(Context context, I info, AuthProviderListener listener);
 	
 	/**
 	 * Clears any cached data for this provider.
@@ -50,5 +51,10 @@ public interface AuthProvider<I extends AuthProviderInfo> {
 	 * @param info
 	 * @return
 	 */
+	@Deprecated
 	public boolean validate(I info);
+	
+	public boolean validateForRead(I info, String...permissions);
+	
+	public boolean validateForWrite(I info, String...permissions);
 }

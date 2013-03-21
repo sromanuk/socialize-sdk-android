@@ -36,8 +36,27 @@ import com.socialize.demo.R;
  */
 public class ActionBarActivity extends ListActivity {
 	
-	final String[] values = new String[] { "Default Action Bar", "Custom Action Bar", "Multiple Action Bar", "Photo Action Bar", "Red Action Bar",  "Autumn Action Bar",  "Action Bar Top", "Action Bar on WebView"};
-	final Class<?>[] activities = new Class<?>[] { DefaultActionBarActivity.class, CustomActionBarActivity.class, MultiActionBarActivity.class, PhotoActionBarActivity.class, RedActionBarActivity.class, AutumnActionBarActivity.class, TopActionBarActivity.class, WebViewActionBarActivity.class};
+	final String[] values = new String[] { 
+			"Default Action Bar (Profiled)", 
+			"Custom Action Bar", 
+			"Multiple Action Bar", 
+			"Photo Action Bar", 
+			"Red Action Bar",  
+			"Autumn Action Bar",  
+			"Action Bar Top", 
+			"Action Bar on WebView",
+			"Action Bar With Network Detection"};
+	
+	final Class<?>[] activities = new Class<?>[] { 
+			DefaultActionBarActivity.class, 
+			CustomActionBarActivity.class, 
+			MultiActionBarActivity.class, 
+			PhotoActionBarActivity.class, 
+			RedActionBarActivity.class, 
+			AutumnActionBarActivity.class, 
+			TopActionBarActivity.class, 
+			WebViewActionBarActivity.class,
+			ActionBarWithMonitorActivity.class};
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {

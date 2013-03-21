@@ -34,7 +34,7 @@ public class EmptyAuthProvider implements AuthProvider<AuthProviderInfo> {
 
 
 	@Override
-	public void authenticate(AuthProviderInfo info, AuthProviderListener listener) {
+	public void authenticate(Context context, AuthProviderInfo info, AuthProviderListener listener) {
 		listener.onAuthFail(new SocializeException("Empty auth provider used!"));
 	}
 
@@ -44,5 +44,16 @@ public class EmptyAuthProvider implements AuthProvider<AuthProviderInfo> {
 	@Override
 	public boolean validate(AuthProviderInfo info) {
 		return true;
+	}
+
+	@Override
+	public boolean validateForRead(AuthProviderInfo info, String... permissions) {
+		return true;
+	}
+
+	@Override
+	public boolean validateForWrite(AuthProviderInfo info, String... permissions) {
+		return true;
+		
 	}
 }

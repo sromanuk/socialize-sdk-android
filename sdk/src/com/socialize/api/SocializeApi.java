@@ -95,18 +95,14 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 	
 	public SocializeSession authenticate(Context context, String endpoint, String key, String secret, String uuid) throws SocializeException {
 		SocializeSession session = provider.authenticate(endpoint, key, secret, uuid);
-		if(!session.isRestored()) {
-			checkNotifications(context, session);
-		}
+		checkNotifications(context, session);
 		
 		return session;
 	}
 	
 	public SocializeSession authenticate(Context context, String endpoint, String key, String secret, AuthProviderData data, String udid) throws SocializeException {
 		SocializeSession session = provider.authenticate(endpoint, key, secret, data, udid);
-		if(!session.isRestored()) {
-			checkNotifications(context, session);
-		}
+		checkNotifications(context, session);
 		return session;
 	}
 	
@@ -115,7 +111,6 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 			notificationChecker.checkRegistrations(context, session);
 		}
 	}
-	
 	
 	protected void setPropagationData(SocializeAction action, ActionOptions shareOptions, SocialNetwork...networks) {
 		
@@ -163,18 +158,7 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 						if(config.isOGLike()) {
 							ogAction = "like";
 						}
-//						else {
-//							ogAction = config.getProperty(SocializeConfig.FACEBOOK_OG_LIKE_ACTION, null);
-//						}
 						break;
-						
-//					case COMMENT:
-//							ogAction = config.getProperty(SocializeConfig.FACEBOOK_OG_COMMENT_ACTION, null);
-//						break;
-//						
-//					case SHARE:
-//							ogAction = config.getProperty(SocializeConfig.FACEBOOK_OG_SHARE_ACTION, null);
-//						break;					
 				}
 				
 				if(ogAction != null) {
@@ -571,8 +555,6 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 			
 			if(authProvider != null) {
 				
-//				final SocializeSession fSession = session;
-				
 				AuthProviderListener authProviderListener = new AuthProviderListener() {
 					
 					@Override
@@ -584,10 +566,6 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 					
 					@Override
 					public void onAuthSuccess(AuthProviderResponse response) {
-						
-						// Update the local session, it will be saved after regular auth
-//						provider.updateSession(fSession, authProviderData);
-						
 						authProviderData.setUserId3rdParty(response.getUserId());
 						authProviderData.setToken3rdParty(response.getToken());
 						authProviderData.setSecret3rdParty(response.getSecret());
@@ -614,7 +592,7 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 				AuthProviderInfo authProviderInfo = authProviderData.getAuthProviderInfo();
 				
 				if(authProviderInfo != null) {
-					authProvider.authenticate(authProviderInfo, authProviderListener);
+					authProvider.authenticate(context, authProviderInfo, authProviderListener);
 				}
 				else {
 					if(listener != null) {
@@ -844,39 +822,47 @@ public class SocializeApi<T extends SocializeObject, P extends SocializeProvider
 					listener.onError(SocializeException.wrap(error));
 				}
 				else {
-					ListResult<T> results = result.getResults();
-					
-					if(results != null) {
-						List<T> items = results.getItems();
-						List<ActionError> errors = results.getErrors();
-						
-						if((items == null || items.size() == 0) && result.isResultsExpected()){
-							if(errors != null && errors.size() > 0) {
-								listener.onError(new SocializeException(errors.get(0).getMessage()));
-							}
-							else {
-								listener.onError(new SocializeException("No results found in response"));
-							}
-						}
-						else {
-							if(errors != null && errors.size() > 0) {
-								for (ActionError actionError : errors) {
-									if(logger != null) {
-										if(!StringUtils.isEmpty(actionError.getMessage())) {
-											logger.warn(actionError.getMessage());
-										}
-									}
-								}
-							}
-							
-							listener.onResult(requestType, result);
-						}
+					try {
+						handleResults(result, logger);
+						listener.onResult(requestType, result);
 					}
-					else if(result.isResultsExpected()) {
-						listener.onError(new SocializeException("No results found in response"));
+					catch (SocializeException e) {
+						listener.onError(e);
 					}
 				}
 			}
+		}
+	}
+	
+	public static final <T extends SocializeObject> void handleResults(SocializeEntityResponse<T> result, SocializeLogger logger) throws SocializeException {
+		ListResult<T> results = result.getResults();
+		
+		if(results != null) {
+			List<T> items = results.getItems();
+			List<ActionError> errors = results.getErrors();
+			
+			if((items == null || items.size() == 0) && result.isResultsExpected()){
+				if(errors != null && errors.size() > 0) {
+					throw new SocializeException(errors.get(0).getMessage());
+				}
+				else {
+					throw new SocializeException("No results found in response");
+				}
+			}
+			else {
+				if(errors != null && errors.size() > 0) {
+					for (ActionError actionError : errors) {
+						if(logger != null) {
+							if(!StringUtils.isEmpty(actionError.getMessage())) {
+								logger.warn(actionError.getMessage());
+							}
+						}
+					}
+				}
+			}
+		}
+		else if(result.isResultsExpected()) {
+			throw new SocializeException("No results found in response");
 		}
 	}
 

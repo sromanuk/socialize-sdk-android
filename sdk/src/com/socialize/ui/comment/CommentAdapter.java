@@ -24,7 +24,6 @@ package com.socialize.ui.comment;
 import java.util.Date;
 import java.util.List;
 import android.app.Activity;
-import android.graphics.drawable.Drawable;
 import android.view.View;
 import android.view.View.OnClickListener;
 import android.view.ViewGroup;
@@ -44,37 +43,52 @@ import com.socialize.ui.view.ListItemLoadingView;
 import com.socialize.util.CacheableDrawable;
 import com.socialize.util.DisplayUtils;
 import com.socialize.util.Drawables;
-import com.socialize.util.SafeBitmapDrawable;
 import com.socialize.util.StringUtils;
 
 /**
  * Provides comments to the comment view.
-* @author Jason Polites
+ * @author Jason Polites
  */
 public class CommentAdapter extends BaseAdapter {
 
 	private IBeanFactory<CommentListItem> commentItemViewFactory;
 	private IBeanFactory<ListItemLoadingView> listItemLoadingViewFactory;
+	private OnCommentViewActionListener onCommentViewActionListener;
 	private List<Comment> comments;
 	private SocializeLogger logger;
 	private Drawables drawables;
 	private View loadingView;
 	private DisplayUtils displayUtils;
 	private DateUtils dateUtils;
-	private boolean last = false;
 	private ImageLoader imageLoader;
 	private Activity context;
+	
+	private boolean last = false;
 	private Date now;
-
 	private int totalCount = 0;
+	private int count = 0;
+	private int viewCacheCount = 20;
+	private int viewCacheIndex = 0;	
 	
 	private int iconSize = 64;
+	private int densitySize = 64;
 	
-	private int count = 0;
+	private final CommentListItem[] viewCache = new CommentListItem[viewCacheCount];
 
 	public void init(Activity context) {
 		this.context = context;
 		now = new Date();
+		if(displayUtils != null) {
+			densitySize = displayUtils.getDIP(iconSize);
+		}
+		
+		if(commentItemViewFactory != null) {
+			for (int i = 0; i < viewCacheCount; i++) {
+				viewCache[i] = commentItemViewFactory.getBean();
+			}
+		}
+		
+		viewCacheIndex = 0;
 	}
 	
 	public void reset() {
@@ -83,6 +97,9 @@ public class CommentAdapter extends BaseAdapter {
 		}
 		last = false;
 		now = new Date();
+		viewCacheIndex = 0;
+		totalCount = 0;
+		count = 0;
 	}
 
 	@Override
@@ -129,7 +146,7 @@ public class CommentAdapter extends BaseAdapter {
 
 	@Override
 	public View getView(final int position, View oldView, ViewGroup parent) {
-
+		
 		View returnView = null;
 		CommentListItem view = null;
 		
@@ -154,11 +171,22 @@ public class CommentAdapter extends BaseAdapter {
 
 		final User user = tmpUser;
 
-		if (view == null || !imageLoader.isEmpty()) {
-			view = commentItemViewFactory.getBean();
+		if (view == null) {
+			if(viewCacheIndex < viewCacheCount) {
+				view = viewCache[viewCacheIndex++];
+			}
+			else {
+				view = commentItemViewFactory.getBean();
+			}
 		} 
 
 		if(view != null) {
+			
+			view.setCommentObject(item);
+			view.setDeleteOk(false);
+			view.setOnClickListener(null);
+			view.setOnCreateContextMenuListener(null);			
+			
 			returnView = view;
 			
 			if(position >= comments.size()) {
@@ -190,6 +218,7 @@ public class CommentAdapter extends BaseAdapter {
 							}
 						}
 						
+						view.setDeleteOk(user.getId() == currentUser.getId());
 						view.setOnClickListener(new OnClickListener() {
 
 							@Override
@@ -203,13 +232,17 @@ public class CommentAdapter extends BaseAdapter {
 									}
 								}
 							}
-						});						
+						});		
 					}
 					else {
 						displayName = "Anonymous";
 					}
 
-					TextView comment = view.getComment();
+					if(onCommentViewActionListener != null) {
+						onCommentViewActionListener.onBeforeSetComment(item, view);
+					}
+					
+					TextView comment = view.getCommentText();
 					TextView userName = view.getAuthor();
 					TextView time = view.getTime();
 					ImageView locationIcon = view.getLocationIcon();
@@ -245,11 +278,9 @@ public class CommentAdapter extends BaseAdapter {
 
 					if (userIcon != null && drawables != null) {
 
-						int densitySize = displayUtils.getDIP(iconSize);
-
 						if(user != null) {
 							userIcon.getBackground().setAlpha(255);
-
+							
 							if(!StringUtils.isEmpty(imageUrl)) {
 								
 								try {
@@ -261,9 +292,11 @@ public class CommentAdapter extends BaseAdapter {
 											logger.debug("CommentAdpater setting image icon to cached image " + cached);
 										}
 										
-										userIcon.setImageName(imageUrl);
+										userIcon.setExpectedImageName(imageUrl);
+										userIcon.setImageUrlImmediate(imageUrl);
 									}
 									else {
+										userIcon.setExpectedImageName(imageUrl);
 										userIcon.setDefaultImage();
 										imageLoader.loadImageByUrl(imageUrl, densitySize, densitySize, userIcon);										
 									}
@@ -271,17 +304,24 @@ public class CommentAdapter extends BaseAdapter {
 								catch (Exception e) {
 									String errorMsg = "Not a valid image uri [" + imageUrl + "]";
 									logError(errorMsg, e);
+									userIcon.setExpectedImageName(Socialize.DEFAULT_USER_ICON);
 									userIcon.setDefaultImage();
 								}
 							}
 							else if(!StringUtils.isEmpty(user.getProfilePicData())) {
 								userIcon.setDefaultImage();
+								userIcon.setExpectedImageName("user_" + user.getId());
 								imageLoader.loadImageByData("user_" + user.getId(), user.getProfilePicData(),  densitySize, densitySize, userIcon);		
 							}
 							else {
+								userIcon.setExpectedImageName(Socialize.DEFAULT_USER_ICON);
 								userIcon.setDefaultImage();
 							}
 						}
+					}
+					
+					if(onCommentViewActionListener != null) {
+						onCommentViewActionListener.onAfterSetComment(item, view);
 					}
 				}
 			}
@@ -294,34 +334,6 @@ public class CommentAdapter extends BaseAdapter {
 		return returnView;
 	}
 	
-	protected void setImageIcon(User user, int position, ImageView userIcon, SafeBitmapDrawable drawable, Drawable defaultImage) {
-		
-		try {
-			if(logger != null && logger.isDebugEnabled()) {
-				logger.debug("CommentAdapter setting image icon [" +
-						userIcon +
-						"] at row [" +
-						position +
-						"] for user [" +
-						user.getId() +
-						"] to " + drawable);
-			}		
-			
-			userIcon.setImageDrawable(drawable);
-			userIcon.getBackground().setAlpha(255);
-		}
-		catch (Exception e) {
-			logError("Error setting user icon image", e);
-			try {
-				userIcon.setImageDrawable(defaultImage);
-				userIcon.getBackground().setAlpha(255);
-			}
-			catch (Exception e2) {
-				logError("Error setting default icon image", e2);
-			}
-		}
-	}
-
 	@Override
 	public void notifyDataSetChanged() {
 		super.notifyDataSetChanged();
@@ -393,6 +405,14 @@ public class CommentAdapter extends BaseAdapter {
 
 	public void setTotalCount(int totalCount) {
 		this.totalCount = totalCount;
+	}
+	
+	public OnCommentViewActionListener getOnCommentViewActionListener() {
+		return onCommentViewActionListener;
+	}
+	
+	public void setOnCommentViewActionListener(OnCommentViewActionListener onCommentViewActionListener) {
+		this.onCommentViewActionListener = onCommentViewActionListener;
 	}
 
 	protected void logError(String msg, Exception e) {

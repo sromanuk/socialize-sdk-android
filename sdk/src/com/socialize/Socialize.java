@@ -34,7 +34,7 @@ import com.socialize.log.SocializeLogger.LogLevel;
 public class Socialize {
 	
 	// This will be set during the build process
-	public static final String VERSION = "2.5.6";
+	public static final String VERSION = "2.8.1";
 	
 	public static final String ENTITY_OBJECT = "socialize.entity";
 	public static final String ENTITY_ID = "socialize.entity.id";
@@ -52,6 +52,8 @@ public class Socialize {
 	public static LogLevel DEFAULT_LOG_LEVEL = LogLevel.WARN;
 	
 	static final SocializeServiceImpl instance = new SocializeServiceImpl();
+	
+	static SocializeLifecycleListener socializeLifecycleListener;
 
 	private Socialize() {
 		super();
@@ -105,34 +107,54 @@ public class Socialize {
 	}
 
 	/**
-	 * Called by containing Activity's in their onPause() method.
+	 * Called by containing Activities in their onPause() method.
 	 * @param context
 	 */
 	public static void onPause(Activity context) {
 		instance.onPause(context);
+		
+		if(socializeLifecycleListener != null) {
+			socializeLifecycleListener.onPause(context);
+		}
 	}
 	
 	/**
-	 * Called by containing Activity's in their onResume() method.
+	 * Called by containing Activities in their onResume() method.
 	 * @param context
 	 */
 	public static void onResume(Activity context) {
 		instance.onResume(context);
+		
+		if(socializeLifecycleListener != null) {
+			socializeLifecycleListener.onResume(context);
+		}
 	}
 	
 	/**
-	 * Called by containing Activity's in their onCreate() method.
+	 * Called by containing Activities in their onCreate() method.
 	 * @param context
 	 */
 	public static void onCreate(Activity context, Bundle savedInstanceState) {
 		instance.onCreate(context, savedInstanceState);
+		
+		if(socializeLifecycleListener != null) {
+			socializeLifecycleListener.onCreate(context, savedInstanceState);
+		}
 	}
 
 	/**
-	 * Called by containing Activity's in their onDestroy() method.
+	 * Called by containing Activities in their onDestroy() method.
 	 * @param context
 	 */
 	public static void onDestroy(Activity context) {
 		instance.onDestroy(context);
-	}	
+		
+		if(socializeLifecycleListener != null) {
+			socializeLifecycleListener.onDestroy(context);
+		}		
+	}
+	
+	public static void setSocializeLifecycleListener(SocializeLifecycleListener socializeLifecycleListener) {
+		Socialize.socializeLifecycleListener = socializeLifecycleListener;
+	}
 }

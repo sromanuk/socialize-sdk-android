@@ -96,7 +96,7 @@ public class SocializeUserSystem extends SocializeApi<User, SocializeProvider<Us
 	@Override
 	public void authenticate(Context context, String consumerKey, String consumerSecret, SocializeAuthListener listener, SocializeSessionConsumer sessionConsumer) {
 		AuthProviderData authProviderData = authProviderDataFactory.getBean();
-		authProviderData.setAuthProviderInfo(socializeAuthProviderInfoFactory.getInstance());
+		authProviderData.setAuthProviderInfo(socializeAuthProviderInfoFactory.getInstanceForRead());
 		authenticate(context, consumerKey, consumerSecret, authProviderData, listener, sessionConsumer, false);	
 	}
 	
@@ -105,7 +105,7 @@ public class SocializeUserSystem extends SocializeApi<User, SocializeProvider<Us
 	public void authenticate(Context context, AuthProviderType authProviderType, SocializeAuthListener listener, SocializeSessionConsumer sessionConsumer) {
 		String consumerKey = config.getProperty(SocializeConfig.SOCIALIZE_CONSUMER_KEY);
 		String consumerSecret = config.getProperty(SocializeConfig.SOCIALIZE_CONSUMER_SECRET);
-		AuthProviderInfo authProviderInfo = authProviderInfoBuilder.getFactory(authProviderType).getInstance();
+		AuthProviderInfo authProviderInfo = authProviderInfoBuilder.getFactory(authProviderType).getInstanceForRead();
 		authenticate(context, consumerKey, consumerSecret, authProviderInfo, listener, sessionConsumer);
 	}
 	
@@ -115,7 +115,6 @@ public class SocializeUserSystem extends SocializeApi<User, SocializeProvider<Us
 		if(checkKeys(consumerKey, consumerSecret, listener)) {
 			String udid = deviceUtils.getUDID(ctx);
 			
-			// TODO: create test case for this
 			if(StringUtils.isEmpty(udid)) {
 				if(listener != null) {
 					listener.onError(new SocializeException("No UDID provided"));
@@ -199,13 +198,9 @@ public class SocializeUserSystem extends SocializeApi<User, SocializeProvider<Us
 
 			@Override
 			public void onUpdate(User savedUser) {
-				boolean resetC2DM = false;
 				UserSettings oldProfile = session.getUserSettings();
-				if(oldProfile.isNotificationsEnabled() != settings.isNotificationsEnabled()) {
-					resetC2DM = true;
-				}
-				if(resetC2DM) {
-					// Recreate c2dm registration
+				if(settings.isNotificationsEnabled() && oldProfile.isNotificationsEnabled() != settings.isNotificationsEnabled()) {
+					// If notifications was not previously enabled, we may need to register.
 					if(notificationRegistrationSystem != null) {
 						notificationRegistrationSystem.registerC2DMAsync(context);
 					}

@@ -27,6 +27,7 @@ import android.util.AttributeSet;
 import android.view.View;
 import com.socialize.entity.Entity;
 import com.socialize.log.SocializeLogger;
+import com.socialize.ui.comment.OnCommentViewActionListener;
 import com.socialize.ui.view.EntityView;
 
 /**
@@ -45,6 +46,7 @@ public class ActionBarView extends EntityView {
 	private Entity entity;
 	
 	private OnActionBarEventListener onActionBarEventListener;
+	private OnCommentViewActionListener onCommentViewActionListener;
 	
 	public ActionBarView(Context context) {
 		super(context);
@@ -89,6 +91,10 @@ public class ActionBarView extends EntityView {
 			if(onActionBarEventListener != null) {
 				actionBarLayoutView.setOnActionBarEventListener(onActionBarEventListener);
 			}
+			
+			if(onCommentViewActionListener != null) {
+				actionBarLayoutView.setOnCommentViewActionListener(onCommentViewActionListener);
+			}
 		}
 	}
 	
@@ -123,12 +129,21 @@ public class ActionBarView extends EntityView {
 		this.onActionBarEventListener = onActionBarEventListener;
 		setListeners();
 	}
+	
+	public void setOnCommentViewActionListener(OnCommentViewActionListener onCommentViewActionListener) {
+		this.onCommentViewActionListener = onCommentViewActionListener;
+		setListeners();
+	}
 
 	public void refresh() {
-		if(actionBarLayoutView != null) {
-			actionBarLayoutView.reload();
-		}
+		refresh(null);
 	}
+	
+	public void refresh(OnActionBarReloadListener listener) {
+		if(actionBarLayoutView != null) {
+			actionBarLayoutView.reload(listener);
+		}
+	}	
 	
 	public void stopTicker() {
 		if(actionBarLayoutView != null) {

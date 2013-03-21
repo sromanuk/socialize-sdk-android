@@ -72,6 +72,7 @@ import java.io.FileInputStream;
  * Posts to the Facebook wall.
  * @author Jason Polites
  */
+@Deprecated
 public class DefaultFacebookWallPoster implements FacebookWallPoster {
 	
 	private SocializeLogger logger;
@@ -99,17 +100,12 @@ public class DefaultFacebookWallPoster implements FacebookWallPoster {
 			post(parent, "me/og.likes",  params, listener);			
 		}
 		else {
-//			String action = config.getProperty(SocializeConfig.FACEBOOK_OG_LIKE_ACTION, null);
-//			postOG(parent, entity, "", action, propInfo, listener);	
-			
 			post(parent, entity, "", propInfo, listener);	
 		}
 	}
 
 	@Override
 	public void postComment(Activity parent, Entity entity, String comment, PropagationInfo propInfo, SocialNetworkListener listener) {
-//		String action = config.getProperty(SocializeConfig.FACEBOOK_OG_COMMENT_ACTION, null);
-//		postOG(parent, entity, comment, null, propInfo, listener);	
 		post(parent, entity, comment, propInfo, listener);	
 	}
 
@@ -274,47 +270,6 @@ public class DefaultFacebookWallPoster implements FacebookWallPoster {
 		postData.setPostValues(params);
 //		postData.setEntity(entity);
 		postData.setPropagationInfo(propInfo);
-		
-//		if(!StringUtils.isEmpty(action)) {
-//			// Setup the OG path
-//			String namespace = config.getProperty(SocializeConfig.FACEBOOK_OG_NAMESPACE);
-//			
-//			if(!StringUtils.isEmpty(namespace)) {
-//				
-//				// Check the type
-//				String type = entity.getType();
-//				
-//				if(!StringUtils.isEmpty(type)) {
-//					
-//					params.put(type, link);
-//					
-//					String path = "me/" + namespace + ":" + action;
-//					
-//					postData.setPath(path);
-//				}
-//				else {
-//					if(logger != null) {
-//						logger.warn("Open Graph action [" +
-//								action +
-//								"] specified but no type found in entity with key [" +
-//								entity.getKey() +
-//								"]");
-//					}
-//				}
-//			}
-//			else {
-//				if(logger != null) {
-//					logger.warn("Open Graph action [" +
-//							action +
-//							"] specified but no namespace found in config under key [" +
-//							SocializeConfig.FACEBOOK_OG_NAMESPACE +
-//							"]");
-//				}
-//			}
-//		}
-		
-
-		
 
 		post(parent, listener, postData);
 	} */
@@ -421,7 +376,6 @@ public class DefaultFacebookWallPoster implements FacebookWallPoster {
 			String msg = "Cannot post message to Facebook.  No propagation info found";
 			onError(parent, msg, new SocializeException(msg), listener);
 		}
-		
 	}
 	
 	@Override

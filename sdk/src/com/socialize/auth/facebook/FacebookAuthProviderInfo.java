@@ -27,6 +27,7 @@ import java.util.Set;
 import com.socialize.auth.AuthProviderInfo;
 import com.socialize.auth.AuthProviderType;
 import com.socialize.error.SocializeException;
+import com.socialize.util.ArrayUtils;
 import com.socialize.util.StringUtils;
 
 /**
@@ -36,9 +37,15 @@ public class FacebookAuthProviderInfo implements AuthProviderInfo {
 	
 	private static final long serialVersionUID = -6472972851879738516L;
 	
+	public static enum PermissionType {READ, WRITE}
+	
 	private String appId;
-	private String[] permissions;
-
+	
+	private String[] readPermissions;
+	private String[] writePermissions;
+	
+	private PermissionType permissionType = PermissionType.READ;
+	
 	/* (non-Javadoc)
 	 * @see com.socialize.api.AuthProviderInfo#getType()
 	 */
@@ -56,6 +63,14 @@ public class FacebookAuthProviderInfo implements AuthProviderInfo {
 			throw new SocializeException("No facebook app ID found.");
 		}
 	}
+	
+	public PermissionType getPermissionType() {
+		return permissionType;
+	}
+	
+	public void setPermissionType(PermissionType permissionType) {
+		this.permissionType = permissionType;
+	}
 
 	@Override
 	public boolean isValid() {
@@ -70,14 +85,32 @@ public class FacebookAuthProviderInfo implements AuthProviderInfo {
 		this.appId = appId;
 	}
 	
+	@Deprecated
 	public String[] getPermissions() {
-		return permissions;
+		return getWritePermissions();
 	}
 	
+	@Deprecated
 	public void setPermissions(String[] permissions) {
-		this.permissions = permissions;
+		this.setWritePermissions(permissions);
 	}
 	
+	public String[] getReadPermissions() {
+		return readPermissions;
+	}
+
+	public void setReadPermissions(String[] readPermissions) {
+		this.readPermissions = readPermissions;
+	}
+
+	public String[] getWritePermissions() {
+		return writePermissions;
+	}
+	
+	public void setWritePermissions(String[] writePermissions) {
+		this.writePermissions = writePermissions;
+	}
+
 	@Override
 	public int hashCode() {
 		final int prime = 31;
@@ -104,18 +137,28 @@ public class FacebookAuthProviderInfo implements AuthProviderInfo {
 		return true;
 	}
 	
-	public void merge(String[] p) {
+	public void mergeForRead(String[] newPermissions) {
+		this.readPermissions = merge(newPermissions, this.readPermissions);
+	}
+	
+	public void mergeForWrite(String[] newPermissions) {
+		this.writePermissions = merge(newPermissions, this.writePermissions);
+	}	
+	
+	String[] merge(String[] newPermissions, String[] oldPermissions) {
 		Set<String> allPermissions = new HashSet<String>();
 		
-		if(this.permissions != null) {
-			allPermissions.addAll(Arrays.asList(this.permissions));
+		if(oldPermissions != null) {
+			allPermissions.addAll(Arrays.asList(oldPermissions));
 		}
 		
-		allPermissions.addAll(Arrays.asList(p));
+		allPermissions.addAll(Arrays.asList(newPermissions));
 		
-		this.permissions = allPermissions.toArray(new String[allPermissions.size()]);
+		oldPermissions = allPermissions.toArray(new String[allPermissions.size()]);
 		
-		Arrays.sort(this.permissions);
+		Arrays.sort(oldPermissions);
+		
+		return oldPermissions;
 	}
 
 	@Override
@@ -124,9 +167,18 @@ public class FacebookAuthProviderInfo implements AuthProviderInfo {
 		if(info instanceof FacebookAuthProviderInfo) {
 			FacebookAuthProviderInfo that = (FacebookAuthProviderInfo) info;
 			
-			if(that.permissions != null) {
-				merge(that.permissions);
+			if(that.readPermissions != null) {
+				this.readPermissions = merge(that.readPermissions, this.readPermissions);
 			}
+			if(that.writePermissions != null) {
+				this.writePermissions = merge(that.writePermissions, this.writePermissions);
+			}			
+			
+			// Only overwrite if we are READ
+			if(this.permissionType.equals(PermissionType.READ)) {
+				this.permissionType = that.permissionType;
+			}
+			
 			return true;
 		}
 		
@@ -136,26 +188,38 @@ public class FacebookAuthProviderInfo implements AuthProviderInfo {
 	@Override
 	public boolean matches(AuthProviderInfo info) {
 		if(this.equals(info)) {
-			
 			if(info instanceof FacebookAuthProviderInfo) {
 				FacebookAuthProviderInfo that = (FacebookAuthProviderInfo) info;
-				
-				// Ensure THIS object contains all permissions of other object
-				if(Arrays.equals(permissions, that.permissions)) {
-					return true;
-				}
-				else if (permissions != null && that.permissions != null){
-					Arrays.sort(permissions);
-					
-					for (int i = 0; i < that.permissions.length; i++) {
-						if(Arrays.binarySearch(permissions, that.permissions[i]) < 0) {
-							return false;
-						}
+				if(that.getPermissionType().equals(PermissionType.WRITE)) {
+					if(this.getPermissionType().equals(that.getPermissionType())) {
+						return matches(that.writePermissions, this.writePermissions);
 					}
-					
-					return true;
+				}
+				else {
+					return matches(that.readPermissions, this.readPermissions);
 				}
 			}
+		}
+		
+		return false;
+	}
+	
+	boolean matches(String[] expected, String[] actual) {
+		if(Arrays.equals(actual, expected)) {
+			return true;
+		}
+		else if(ArrayUtils.isEmpty(expected) && ArrayUtils.isEmpty(actual)) {
+			return true;
+		}
+		else if (actual != null && expected != null){
+			Arrays.sort(actual);
+			for (int i = 0; i < expected.length; i++) {
+				if(Arrays.binarySearch(actual, expected[i]) < 0) {
+					return false;
+				}
+			}
+			
+			return true;
 		}
 		
 		return false;

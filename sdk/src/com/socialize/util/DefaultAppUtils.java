@@ -32,13 +32,16 @@ import android.content.pm.ApplicationInfo;
 import android.content.pm.PackageManager;
 import android.content.pm.PackageManager.NameNotFoundException;
 import android.content.pm.ResolveInfo;
-import android.content.res.Resources;
 import android.telephony.TelephonyManager;
 import com.socialize.Socialize;
 import com.socialize.SocializeService;
+import com.socialize.auth.facebook.FacebookActivity;
 import com.socialize.config.SocializeConfig;
 import com.socialize.log.SocializeLogger;
 import com.socialize.ui.SocializeLaunchActivity;
+import com.socialize.ui.action.ActionDetailActivity;
+import com.socialize.ui.comment.CommentActivity;
+import com.socialize.ui.profile.ProfileActivity;
 
 /**
  * @author Jason Polites
@@ -65,12 +68,11 @@ public class DefaultAppUtils implements AppUtils {
 		
 		// Try to get the app name 
 		try {
-			Resources appR = context.getResources(); 
-			CharSequence txt = appR.getText(appR.getIdentifier("app_name",  "string", packageName)); 
-			appName = txt.toString();
-		} 
+			PackageManager pkgManager = context.getPackageManager();
+			appName = pkgManager.getApplicationLabel(pkgManager.getApplicationInfo(packageName, 0)).toString();
+		}
 		catch (Exception e) {
-			String msg = "Failed to locate app_name String from resources.  Make sure this is specified in your AndroidManifest.xml";
+			String msg = "Failed to lookup application label.  Make sure this is specified in your AndroidManifest.xml";
 			
 			if(logger != null) {
 				logger.error(msg, e);
@@ -109,6 +111,17 @@ public class DefaultAppUtils implements AppUtils {
 		return null;
 	}
 	
+	@Override
+	public boolean isActivityAvailable(Context context, String activityClassName) {
+		try {
+			Class<?> activityClass = Class.forName(activityClassName);
+			return isActivityAvailable(context, activityClass);
+		}
+		catch (ClassNotFoundException e) {}
+		
+		return false;
+	}
+
 	/* (non-Javadoc)
 	 * @see com.socialize.util.IAppUtils#isActivityAvailable(android.content.Context, java.lang.Class)
 	 */
@@ -181,7 +194,7 @@ public class DefaultAppUtils implements AppUtils {
 	 */
 	@Override
 	public boolean isLocationAvailable(Context context) {
-		if(!locationAssessed) {
+		if(!locationAssessed && config != null) {
 			locationAvailable = config.getBooleanProperty(SocializeConfig.SOCIALIZE_LOCATION_ENABLED, true) && (hasPermission(context, "android.permission.ACCESS_FINE_LOCATION") || hasPermission(context, "android.permission.ACCESS_COARSE_LOCATION"));
 			locationAssessed = true;
 		}
@@ -245,6 +258,8 @@ public class DefaultAppUtils implements AppUtils {
 	@Override
 	public void checkAndroidManifest(Context context) {
 		// Check the launch activity config
+		checkActivitiesExist(context, CommentActivity.class, ActionDetailActivity.class, ProfileActivity.class, FacebookActivity.class, SocializeLaunchActivity.class);
+		
 		ActivityInfo info = getActivityInfo(context, SocializeLaunchActivity.class);
 		if(info != null) {
 			if((info.flags & ActivityInfo.FLAG_NO_HISTORY) != ActivityInfo.FLAG_NO_HISTORY) {
@@ -255,7 +270,27 @@ public class DefaultAppUtils implements AppUtils {
 			if((info.launchMode & ActivityInfo.LAUNCH_SINGLE_TOP) == ActivityInfo.LAUNCH_SINGLE_TOP) {
 				logger.warn("Activity flag android:launchMode=\"singleTop\" found for " + SocializeLaunchActivity.class.getSimpleName() + ".  This should be removed from the declaration of this activity in your AndroidManifest.xml");
 			}
-		}		
+		}	
+		
+		info = getActivityInfo(context, CommentActivity.class);
+		
+		if(info != null) {
+			if((info.configChanges & ActivityInfo.CONFIG_ORIENTATION) != ActivityInfo.CONFIG_ORIENTATION) {
+				logger.warn("Activity flag android:configChanges=\"orientation|keyboardHidden|screenSize\" not found for " + CommentActivity.class.getSimpleName() + ".  Please ensure this is added to the declaration of this activity in your AndroidManifest.xml");
+			}
+		}
+	}
+	
+	protected void checkActivitiesExist(Context context, Class<?>...classes) {
+		for (Class<?> cls : classes) {
+			ActivityInfo info = getActivityInfo(context, cls);
+			
+			if(info == null) {
+				logger.warn("No activity element declared for [" +
+						cls.getName() +
+						"].  Please ensure you have included this in your AndroidManifest.xml");
+			}
+		}
 	}
 
 	/* (non-Javadoc)
@@ -266,24 +301,6 @@ public class DefaultAppUtils implements AppUtils {
 		return context.getPackageManager().checkPermission(permission, context.getPackageName()) == PackageManager.PERMISSION_GRANTED;
 	}	
 	
-//	@Override
-//	public boolean isAppInBackground(Context context) {
-//		ActivityManager activityManager = (ActivityManager) context.getSystemService(Context.ACTIVITY_SERVICE);
-//		List<RunningAppProcessInfo> runningProcInfo = activityManager .getRunningAppProcesses();
-//		for(int i = 0; i < runningProcInfo.size(); i++){
-//			RunningAppProcessInfo runningAppProcessInfo = runningProcInfo.get(i);
-//	        if(runningAppProcessInfo.processName.equals(context.getPackageName())) {
-//                if (runningAppProcessInfo.importance==RunningAppProcessInfo.IMPORTANCE_FOREGROUND || runningAppProcessInfo.lru==RunningAppProcessInfo.IMPORTANCE_VISIBLE){
-//                	return false;
-//                }
-//                else {
-//                	return true;
-//                }
-//	        }
-//		}
-//		return true;
-//	}
-
 	public static boolean launchMainApp(Activity origin) {
 		Intent mainIntent = getMainAppIntent(origin);
 		if(mainIntent != null) {
@@ -358,11 +375,8 @@ public class DefaultAppUtils implements AppUtils {
 	public void setConfig(SocializeConfig config) {
 		this.config = config;
 	}
-
 	
 	void setNotificationsAssessed(boolean notificationsAssessed) {
 		this.notificationsAssessed = notificationsAssessed;
 	}
-	
-	
 }

@@ -73,6 +73,7 @@ import com.socialize.util.ImageUtils;
 	SocializeConfig.class,
 	PropagationInfo.class
 })
+@Deprecated
 public class FacebookWallPosterTest extends SocializeActivityTest {
 
 	
@@ -634,7 +635,7 @@ public class FacebookWallPosterTest extends SocializeActivityTest {
 			}
 		};
 		
-		poster.post(getActivity(), listener, postData);
+		poster.post(TestUtils.getActivity(this), listener, postData);
 		
 		String result = getResult(0);
 		

@@ -4,19 +4,24 @@
     android:versionCode="1"
     android:versionName="1.0" >
 
-    <uses-sdk android:minSdkVersion="7" android:targetSdkVersion="16" />
+    <uses-sdk android:minSdkVersion="8" android:targetSdkVersion="16" />
     
     <uses-permission android:name="android.permission.INTERNET"/>
 	<uses-permission android:name="android.permission.READ_PHONE_STATE" />
 	<uses-permission android:name="android.permission.ACCESS_COARSE_LOCATION"/>
 	<uses-permission android:name="android.permission.WRITE_EXTERNAL_STORAGE"/>
+	<uses-permission android:name="android.permission.GET_ACCOUNTS" />
+	<uses-permission android:name="android.permission.WAKE_LOCK" /> 
+	
+	<!-- Required for ActionBarWithMonitor -->
+	<uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" /> 
 	
 	<!-- Permissions required for Push Notifications -->
 	<permission android:name="com.socialize.demo.permission.C2D_MESSAGE" android:protectionLevel="signature" />
 	 
 	<uses-permission android:name="com.socialize.demo.permission.C2D_MESSAGE" />
-	<uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />     
-    
+	<uses-permission android:name="com.google.android.c2dm.permission.RECEIVE" />    
+
     <application
         android:icon="@drawable/ic_launcher"
         android:label="@string/app_name" >
@@ -36,39 +41,36 @@
         <!--****************************************************************-->   
         
        	<!-- Base Activities Required by Socialize UI -->
-       	<activity android:name="com.socialize.ui.comment.CommentActivity"/>
+       	<activity android:name="com.socialize.ui.comment.CommentActivity" android:configChanges="orientation|keyboardHidden|screenSize"/>
        	<activity android:name="com.socialize.ui.action.ActionDetailActivity"/>
        	<activity android:name="com.socialize.ui.profile.ProfileActivity"/>
-       	<activity android:name="com.socialize.auth.facebook.FacebookActivity"/> 
+       	<activity android:name="com.socialize.auth.facebook.FacebookActivity" android:theme="@android:style/Theme.NoDisplay"/> 
        	<activity android:name="com.socialize.ui.SocializeLaunchActivity" android:noHistory="true"/>
- 
-        <!-- SmartAlerts Config -->
-        <service android:name="com.socialize.notifications.SocializeC2DMReceiver"/>
-        <receiver android:name="com.socialize.notifications.SocializeBroadcastReceiver" android:permission="com.google.android.c2dm.permission.SEND">
-			<intent-filter>
-				<action android:name="com.google.android.c2dm.intent.RECEIVE" />
-				<category android:name="com.socialize.demo" />
-			</intent-filter>
-			<intent-filter>
-				<action android:name="com.google.android.c2dm.intent.REGISTRATION" />
-				<category android:name="com.socialize.demo" />
-			</intent-filter>
-        </receiver>  
+
         
         <!--****************************************************************-->   
         <!--************ END STANDARD SOCIALIZE CONFIGURATION **************-->
         <!--****************************************************************-->  
         
         
-        
         <!--****************************************************************-->   
         <!--**************** SOCIALIZE DEMO CONFIGURATION ******************-->
         <!--****************************************************************-->  
+ 
+        <!-- GCM Config -->
+        <service android:name=".GCMIntentService" />
+        
+		<receiver android:name="com.google.android.gcm.GCMBroadcastReceiver" android:permission="com.google.android.c2dm.permission.SEND" >
+		  <intent-filter>
+		    <action android:name="com.google.android.c2dm.intent.RECEIVE" />
+		    <action android:name="com.google.android.c2dm.intent.REGISTRATION" />
+		    <category android:name="com.socialize.demo" />
+		  </intent-filter>
+		</receiver>        
         
         <activity android:name=".DemoList"/>
         <activity android:name=".InitActivity"/>
         <activity android:name=".implementations.tools.ToolsActivity"/>
-        
         
         <!-- Comment -->
         <activity android:name=".implementations.comment.CommentActivity"/>
@@ -78,7 +80,7 @@
         <activity android:name=".implementations.comment.GetCommentsByUserActivity"/>
         <activity android:name=".implementations.comment.GetCommentsByIDActivity"/>
         <activity android:name=".implementations.comment.CommentViewEmbeddedActivity"/>
-        
+        <activity android:name=".implementations.comment.CommentViewCustomHeaderActivity"/>
         
         <!-- Share -->
         <activity android:name=".implementations.share.ShareActivity"/>
@@ -115,6 +117,9 @@
         <activity android:name=".implementations.actionbar.TopActionBarActivity"/>
         <activity android:name=".implementations.actionbar.WebViewActionBarActivity"/>
         <activity android:name=".implementations.actionbar.PhotoActionBarActivity"/>
+        <activity android:name=".implementations.actionbar.ActionBarWithButtonActivity"/>
+        <activity android:name=".implementations.actionbar.ActionBarAfterButtonActivity"/>
+        <activity android:name=".implementations.actionbar.ActionBarWithMonitorActivity"/>
         
         <!-- User Activity -->
         <activity android:name=".implementations.action.ActionActivity"/>
@@ -138,9 +143,11 @@
         <activity android:name=".implementations.facebook.ListCheckinsActivity"/> 
         <activity android:name=".implementations.facebook.PostToWallActivity"/> 
         <activity android:name=".implementations.facebook.PostPhotoActivity"/> 
+        <activity android:name=".implementations.facebook.PostPhotoToFanPageActivity"/> 
         <activity android:name=".implementations.facebook.GetTokenActivity"/> 
         <activity android:name=".implementations.facebook.GetPermissionsActivity"/> 
         <activity android:name=".implementations.facebook.OpenGraphActivity"/>
+        <activity android:name=".implementations.facebook.GetEmailActivity"/>
         
         <!-- Twitter -->
         <activity android:name=".implementations.twitter.TwitterActivity"/> 
@@ -167,8 +174,10 @@
         
         <!--****************************************************************-->   
         <!--************** END SOCIALIZE DEMO CONFIGURATION ****************-->
-        <!--****************************************************************-->           
-             
+        <!--****************************************************************-->
+        
+       	<activity android:name="com.facebook.LoginActivity"/> 
+       	
     </application>
 
 </manifest>

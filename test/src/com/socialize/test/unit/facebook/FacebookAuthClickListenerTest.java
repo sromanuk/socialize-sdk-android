@@ -48,6 +48,7 @@ import com.socialize.networks.SocializeDeAuthListener;
 import com.socialize.networks.facebook.FacebookAuthClickListener;
 import com.socialize.networks.facebook.FacebookPermissionCallback;
 import com.socialize.networks.facebook.FacebookUtilsProxy;
+import com.socialize.networks.facebook.OnPermissionResult;
 import com.socialize.test.SocializeActivityTest;
 import com.socialize.ui.dialog.SimpleDialogFactory;
 
@@ -84,17 +85,22 @@ public class FacebookAuthClickListenerTest extends SocializeActivityTest {
 		doOnClickTest(AUTH_REPSONSE.CANCEL);
 	}
 	
-	@SuppressWarnings("unchecked")
 	protected void doOnClickTest(final AUTH_REPSONSE response) throws Exception {
 		
 		final CountDownLatch latch = new CountDownLatch(1);
 		
 		SocializeAuthListener listener = null;
-		SimpleDialogFactory<ProgressDialog> dialogFactory = AndroidMock.createMock(SimpleDialogFactory.class);
-		ProgressDialog dialog = AndroidMock.createMock(ProgressDialog.class, getContext());
+//		SimpleDialogFactory<ProgressDialog> dialogFactory = AndroidMock.createMock(SimpleDialogFactory.class);
+//		ProgressDialog dialog = AndroidMock.createMock(ProgressDialog.class, getContext());
 		View view = AndroidMock.createMock(View.class, getContext());
 		FacebookUtilsProxy facebookUtils = new FacebookUtilsProxy() {
 			
+			@Override
+			public void onResume(Activity context, SocializeAuthListener listener) {}
+
+			@Override
+			public void getCurrentPermissions(Activity context, String token, OnPermissionResult callback) {}
+
 			@Override
 			public void unlink(Context context, SocializeDeAuthListener listener) {}
 			
@@ -112,8 +118,7 @@ public class FacebookAuthClickListenerTest extends SocializeActivityTest {
 
 			@Override
 			public void link(Activity context, SocializeAuthListener listener) {
-				addResult(0, listener);
-				latch.countDown();
+		
 			}
 			
 			@Override
@@ -121,6 +126,37 @@ public class FacebookAuthClickListenerTest extends SocializeActivityTest {
 				return false;
 			}
 			
+			@Override
+			public void linkForRead(Activity context, SocializeAuthListener listener, String... permissions) {
+				addResult(0, listener);
+				latch.countDown();
+			}
+
+			@Override
+			public void linkForRead(Activity context, String token, boolean verifyPermissions, SocializeAuthListener listener, String... permissions) {
+				
+			}
+
+			@Override
+			public void linkForWrite(Activity context, SocializeAuthListener listener, String... permissions) {
+				
+			}
+
+			@Override
+			public void linkForWrite(Activity context, String token, boolean verifyPermissions, SocializeAuthListener listener, String... permissions) {
+				
+			}
+
+			@Override
+			public boolean isLinkedForRead(Context context, String... permissions) {
+				return false;
+			}
+
+			@Override
+			public boolean isLinkedForWrite(Context context, String... permissions) {
+				return false;
+			}
+
 			@Override
 			public boolean isAvailable(Context context) {
 				return true;
@@ -170,16 +206,17 @@ public class FacebookAuthClickListenerTest extends SocializeActivityTest {
 		
 		view.setEnabled(false);
 		
-		AndroidMock.expect(dialogFactory.show(getContext(), "Authentication", "Authenticating...")).andReturn(dialog);
+//		AndroidMock.expect(dialogFactory.show(getContext(), "socialize_auth_dialog", "socialize_auth_dialog_message")).andReturn(dialog);
 		
-		dialog.dismiss();
+//		dialog.dismiss();
 		
 		view.setEnabled(true);
 		
-		AndroidMock.replay(dialogFactory,dialog,view);
+//		AndroidMock.replay(dialogFactory,dialog,view);
+		AndroidMock.replay(view);
 			
 		FacebookAuthClickListener facebookAuthClickListener = new FacebookAuthClickListener();
-		facebookAuthClickListener.setDialogFactory(dialogFactory);
+//		facebookAuthClickListener.setDialogFactory(dialogFactory);
 		facebookAuthClickListener.setListener(listener);
 		facebookAuthClickListener.onClick(view);
 
@@ -204,7 +241,8 @@ public class FacebookAuthClickListenerTest extends SocializeActivityTest {
 				break;					
 		}		
 			
-		AndroidMock.verify(dialogFactory,dialog,view);
+//		AndroidMock.verify(dialogFactory,dialog,view);
+		AndroidMock.verify(view);
 	}
 	
 }

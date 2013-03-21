@@ -91,7 +91,7 @@ public class ImageLoadAsyncTask extends Thread {
 											logger.debug("ImageLoadAsyncTask image loading from encoded data for: " + url);
 										}
 										
-										drawable = (SafeBitmapDrawable) drawables.getDrawable(url, base64Utils.decode(request.getEncodedImageData()), request.getScaleWidth(), request.getScaleHeight());
+										drawable = (SafeBitmapDrawable) drawables.getDrawableFromUrl(url, base64Utils.decode(request.getEncodedImageData()), request.getScaleWidth(), request.getScaleHeight());
 										break;
 	
 									default:
@@ -108,7 +108,17 @@ public class ImageLoadAsyncTask extends Thread {
 								}
 							}
 							
-							request.notifyListeners(drawable);
+							
+							int notified = request.notifyListeners(drawable);
+							
+							if(logger != null && logger.isDebugEnabled()) {
+								logger.debug("Notified [" +
+										notified +
+										"] listeners for image load of url [" +
+										url +
+										"]");
+							}	
+							
 						}
 						catch (Exception e) {
 							request.notifyListeners(e);
@@ -177,7 +187,7 @@ public class ImageLoadAsyncTask extends Thread {
 		}
 		else {
 			if(logger != null) {
-				logger.warn("Image load task is not running.  Enqeueu request ignored");
+				logger.warn("Image load task is not running.  Enqueue request ignored");
 			}
 		}
 	}

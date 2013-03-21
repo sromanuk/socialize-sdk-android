@@ -38,6 +38,8 @@ import android.widget.Toast;
 import com.socialize.Socialize;
 import com.socialize.android.ioc.IBeanFactory;
 import com.socialize.api.SocializeSession;
+import com.socialize.i18n.I18NConstants;
+import com.socialize.i18n.LocalizationService;
 import com.socialize.ui.profile.UserSettings;
 import com.socialize.ui.util.Colors;
 import com.socialize.ui.util.KeyboardUtils;
@@ -63,6 +65,7 @@ public class CommentEntryView extends BaseView {
 	private Colors colors;
 	private KeyboardUtils keyboardUtils;
 	private EditText commentField;
+	private LocalizationService localizationService;
 	
 	private IBeanFactory<CustomCheckbox> locationEnabledOptionFactory;
 	private IBeanFactory<CustomCheckbox> notificationEnabledOptionFactory;
@@ -174,6 +177,7 @@ public class CommentEntryView extends BaseView {
 			postCommentButton.setCustomClickListener(new OnClickListener() {
 				@Override
 				public void onClick(View v) {
+					postCommentButton.setEnabled(false);
 					keyboardUtils.hideKeyboard(commentField);
 					boolean shareLocation = false;
 					if(locationCheckBox != null) {
@@ -205,15 +209,15 @@ public class CommentEntryView extends BaseView {
 
 			// Notification layout
 			LinearLayout notificationMasterLayout = new LinearLayout(getContext());
-			LayoutParams notificationMasterLayoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+			LayoutParams notificationMasterLayoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.FILL_PARENT);
 					
 			notificationMasterLayoutParams.gravity = Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL;
 			notificationMasterLayoutParams.weight = 1.0f;
-			notificationMasterLayoutParams.setMargins(0, -displayUtils.getDIP(20), 0, 0);
+			notificationMasterLayoutParams.setMargins(0, displayUtils.getDIP(20), 0, 0);
 			notificationMasterLayout.setLayoutParams(notificationMasterLayoutParams);
 			
 			LinearLayout notificationContentLayout = new LinearLayout(getContext());
-			LayoutParams notificationContentLayoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.WRAP_CONTENT);
+			LayoutParams notificationContentLayoutParams = new LinearLayout.LayoutParams(LinearLayout.LayoutParams.FILL_PARENT, LinearLayout.LayoutParams.FILL_PARENT);
 					
 			notificationContentLayout.setOrientation(LinearLayout.VERTICAL);
 			notificationContentLayoutParams.gravity = Gravity.CENTER_HORIZONTAL | Gravity.CENTER_VERTICAL;
@@ -359,6 +363,10 @@ public class CommentEntryView extends BaseView {
 		updateUI();
 	}
 
+	public void setLocalizationService(LocalizationService localizationService) {
+		this.localizationService = localizationService;
+	}
+
 	protected void updateUI() {
 		
 		if(notificationsAvailable) {
@@ -369,24 +377,24 @@ public class CommentEntryView extends BaseView {
 	
 			if(notificationsEnabled) {
 				if(notificationsText != null) {
-					notificationsText.setText("We will notify you when someone replies.");
+					notificationsText.setText(localizationService.getString(I18NConstants.COMMENT_SMARTALERTS_SUBSCRIBED_WILL_NOTIFY));
 				}
 				if(notificationsTitle != null) {
-					notificationsTitle.setText("You will be subscribed.");
+					notificationsTitle.setText(localizationService.getString(I18NConstants.COMMENT_SMARTALERTS_SUBSCRIBED_YES));
 				}
 				if(subscribeNotificationButton != null) {
-					subscribeNotificationButton.setText("Unsubscribe");
+					subscribeNotificationButton.setTextKey(I18NConstants.COMMENT_SMARTALERTS_UNSUBSCRIBE);
 				}
 			}
 			else {
 				if(notificationsText != null) {
-					notificationsText.setText("Click subscribe to receive updates.");
+					notificationsText.setText(localizationService.getString(I18NConstants.COMMENT_SMARTALERTS_SUBSCRIBE_ASK));
 				}
 				if(notificationsTitle != null) {
-					notificationsTitle.setText("You will not be subscribed.");
+					notificationsTitle.setText(localizationService.getString(I18NConstants.COMMENT_SMARTALERTS_SUBSCRIBED_NO));
 				}
 				if(subscribeNotificationButton != null) {
-					subscribeNotificationButton.setText("Subscribe");
+					subscribeNotificationButton.setTextKey(I18NConstants.COMMENT_SMARTALERTS_SUBSCRIBE);
 				}
 			}
 		}
@@ -401,6 +409,10 @@ public class CommentEntryView extends BaseView {
 		if(notifyCheckBox != null) {
 			notifyCheckBox.setChecked(notificationsEnabled);
 		}
+		
+		if(postCommentButton != null) {
+			postCommentButton.setEnabled(true);
+		}		
 		
 		SocializeSession session = Socialize.getSocialize().getSession();
 		
@@ -426,7 +438,6 @@ public class CommentEntryView extends BaseView {
 	protected void reset() {
 		keyboardUtils.hideKeyboard(commentField);
 		commentField.setText("");
-//		update();
 	}
 	
 	public void update() {
@@ -446,7 +457,7 @@ public class CommentEntryView extends BaseView {
 		updateUI();
 	}
 	
-	protected EditText getCommentField() {
+	public EditText getCommentField() {
 		return commentField;
 	}
 
@@ -458,6 +469,10 @@ public class CommentEntryView extends BaseView {
 		return notifyCheckBox;
 	}
 	
+	protected SocializeButton getPostCommentButton() {
+		return postCommentButton;
+	}
+
 	protected void setNotifySubscribeState(boolean subscribed) {
 		if(subscribed) {
 			notificationsEnabled = subscribed;
@@ -468,4 +483,6 @@ public class CommentEntryView extends BaseView {
 			updateUI();
 		}
 	}
+	
+	
 }

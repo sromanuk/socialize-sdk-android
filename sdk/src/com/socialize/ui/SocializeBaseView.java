@@ -33,6 +33,8 @@ import com.socialize.SocializeSystem;
 import com.socialize.UserUtils;
 import com.socialize.android.ioc.IOCContainer;
 import com.socialize.error.SocializeException;
+import com.socialize.i18n.I18NConstants;
+import com.socialize.i18n.LocalizationService;
 import com.socialize.listener.SocializeInitListener;
 import com.socialize.log.SocializeLogger;
 import com.socialize.ui.comment.CommentActivity;
@@ -45,7 +47,12 @@ import com.socialize.view.BaseView;
 public abstract class SocializeBaseView extends BaseView {
 
 	protected IOCContainer container;
-	private Drawables drawables;
+	protected Drawables drawables;
+	protected LocalizationService localizationService;
+	
+	protected Menu menu;
+	
+	protected boolean viewLoaded = false;
 	
 	public SocializeBaseView(Context context, AttributeSet attrs) {
 		super(context, attrs);
@@ -84,6 +91,7 @@ public abstract class SocializeBaseView extends BaseView {
 			public void onInit(Context context, IOCContainer c) {
 				container = c;
 				drawables = c.getBean("drawables");
+				localizationService = c.getBean("localizationService");
 				onViewLoad(container);
 			}
 		};
@@ -101,13 +109,21 @@ public abstract class SocializeBaseView extends BaseView {
 			public void onInit(Context context, IOCContainer c) {
 				container = c;
 				drawables = c.getBean("drawables");
+				localizationService = c.getBean("localizationService");
 				onViewUpdate(container);
 			}
 		};
 	}	
 	
 	// Subclasses override
-	public void onViewLoad(IOCContainer container) {};
+	public void onViewLoad(IOCContainer container) {
+		// Create a menu if we have one.
+		if(menu != null) {
+			createOptionsMenuItem(getActivity(), menu);
+		}
+		
+		viewLoaded = true;
+	};
 	
 	// Subclasses override
 	public void onViewUpdate(IOCContainer container) {};
@@ -165,7 +181,7 @@ public abstract class SocializeBaseView extends BaseView {
 	
 	protected void createOptionsMenuItem(final Activity source, Menu menu) {
 		if(Socialize.getSocialize().isAuthenticated()) {
-			MenuItem add = menu.add("Settings");
+			MenuItem add = menu.add(localizationService.getString(I18NConstants.SETTINGS_HEADER));
 			
 			if(drawables != null) {
 				add.setIcon(drawables.getDrawable("ic_menu_preferences.png"));
@@ -180,6 +196,16 @@ public abstract class SocializeBaseView extends BaseView {
 			});
 		}
 	}
+	
+	public final boolean onCreateOptionsMenu(final Activity source, Menu menu) {
+		this.menu = menu;
+		
+		if(viewLoaded) {
+			createOptionsMenuItem(source, menu);
+		}
+		
+		return true;
+	}	
 	
 	// Subclasses override
 	protected void onBeforeSocializeInit() {}

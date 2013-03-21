@@ -86,6 +86,11 @@ public class ActionBarSampleListener extends Activity {
 					}
 
 					@Override
+					public void onLoadFail(Exception error) {
+						// Called when the action bar load failed
+					}
+
+					@Override
 					public void onGetLike(ActionBarView actionBar, Like like) {
 						// Called when the action bar retrieves the like for the
 						// current user
@@ -103,7 +108,6 @@ public class ActionBarSampleListener extends Activity {
 						return false;
 					}
 				});				
-				
 			}
 		});
 		

@@ -27,6 +27,7 @@ import java.util.List;
 import android.app.Activity;
 import android.app.Dialog;
 import android.os.Bundle;
+import com.google.android.gcm.GCMRegistrar;
 import com.socialize.ConfigUtils;
 import com.socialize.Socialize;
 import com.socialize.config.SocializeConfig;
@@ -47,12 +48,24 @@ public abstract class DemoActivity extends Activity implements DialogRegister {
 	
 	protected void onCreate(Bundle savedInstanceState) {
 		super.onCreate(savedInstanceState);
+		StictModeUtils.enableDefaults();
 		entity = Entity.newInstance("http://getsocialize.com", "Socialize");
 		entity.setType("article");
 		
 		Socialize.onCreate(this, savedInstanceState);
 		ConfigUtils.getConfig(this).setProperty(SocializeConfig.SOCIALIZE_EVENTS_AUTH_ENABLED, "false");
 		ConfigUtils.getConfig(this).setProperty(SocializeConfig.SOCIALIZE_EVENTS_SHARE_ENABLED, "false");
+		
+		// Standard GCM Registration
+		// This is simply to verify that SmartAlerts work where there is already a GCM implementation
+		GCMRegistrar.checkDevice(this);
+		GCMRegistrar.checkManifest(this);
+		
+		final String regId = GCMRegistrar.getRegistrationId(this);
+		
+		if (regId.equals("")) {
+			GCMRegistrar.register(this, GCMIntentService.SENDER_ID);
+		} 
 	}
 	
 	/* (non-Javadoc)

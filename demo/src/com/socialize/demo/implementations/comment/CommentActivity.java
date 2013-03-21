@@ -33,6 +33,7 @@ import com.socialize.demo.R;
 import com.socialize.entity.Comment;
 import com.socialize.entity.Entity;
 import com.socialize.error.SocializeException;
+import com.socialize.ui.comment.CommentListItem;
 import com.socialize.ui.comment.CommentListView;
 import com.socialize.ui.comment.OnCommentViewActionListener;
 
@@ -42,8 +43,23 @@ import com.socialize.ui.comment.OnCommentViewActionListener;
  *
  */
 public class CommentActivity extends ListActivity {
-	final String[] values = new String[] { "Show Comment List","Show Comment List (No Header)", "Add Comment", "Add Comment Without Share", "Get Comments By Entity", "Get Comments By User", "Get Comment By ID"};
-	final Class<?>[] activities = new Class<?>[] { CommentViewEmbeddedActivity.class, AddCommentActivity.class, AddCommentWithoutShareActivity.class, GetCommentsByEntityActivity.class, GetCommentsByUserActivity.class, GetCommentsByIDActivity.class};
+	final String[] values = new String[] { 
+			"Show Comment List",
+			"Show Comment List (No Header)", 
+			"Show Comment List (Custom Header)", 
+			"Add Comment", 
+			"Add Comment Without Share", 
+			"Get Comments By Entity", 
+			"Get Comments By User", 
+			"Get Comment By ID"};
+	final Class<?>[] activities = new Class<?>[] { 
+			CommentViewEmbeddedActivity.class, 
+			CommentViewCustomHeaderActivity.class,
+			AddCommentActivity.class, 
+			AddCommentWithoutShareActivity.class, 
+			GetCommentsByEntityActivity.class, 
+			GetCommentsByUserActivity.class, 
+			GetCommentsByIDActivity.class};
 	
 	@Override
 	protected void onCreate(Bundle savedInstanceState) {
@@ -55,8 +71,18 @@ public class CommentActivity extends ListActivity {
 	
 	@Override
 	protected void onListItemClick(ListView l, View v, int position, long id) {
-		if(position == 0) {
-			CommentUtils.showCommentView(this, Entity.newInstance("http://getsocialize.com", "Socialize"), new OnCommentViewActionListener() {
+		
+		if(position <= 1) {
+			
+			String entity = null;
+			
+			switch (position) {
+			case 0:
+				entity = "http://getsocialize.com";
+				break;
+			}
+			
+			CommentUtils.showCommentView(this, Entity.newInstance(entity, "Socialize"), new OnCommentViewActionListener() {
 				
 				@Override
 				public void onError(SocializeException error) {
@@ -81,6 +107,14 @@ public class CommentActivity extends ListActivity {
 				
 				@Override
 				public void onCommentList(CommentListView view, List<Comment> comments, int start, int end) {
+				}
+
+				@Override
+				public void onBeforeSetComment(Comment comment, CommentListItem item) {
+				}
+
+				@Override
+				public void onAfterSetComment(Comment comment, CommentListItem item) {
 				}
 			});
 		}

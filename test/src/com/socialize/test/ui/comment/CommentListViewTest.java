@@ -28,6 +28,7 @@ import com.socialize.test.SocializeActivityTest;
 import com.socialize.test.ui.util.TestUtils;
 import com.socialize.ui.comment.CommentAdapter;
 import com.socialize.ui.comment.CommentAddButtonListener;
+import com.socialize.ui.comment.CommentEditField;
 import com.socialize.ui.comment.CommentListView;
 import com.socialize.ui.comment.CommentScrollListener;
 import com.socialize.ui.dialog.SimpleDialogFactory;
@@ -126,8 +127,8 @@ public class CommentListViewTest extends SocializeActivityTest {
 		Entity.class})
 	public void testPostCommentSuccess() {
 		
-		final String title = "Posting comment";
-		final String message = "Please wait...";
+		final String title = "socialize_comment_dialog";
+		final String message = "socialize_please_wait";
 		final int totalCount = 69;
 		final int startIndex = 0;
 		final int endIndex = 10;
@@ -139,7 +140,7 @@ public class CommentListViewTest extends SocializeActivityTest {
 		final SimpleDialogFactory<ProgressDialog> progressDialogFactory = AndroidMock.createMock(SimpleDialogFactory.class);
 		final CommentAdapter commentAdapter = AndroidMock.createMock(CommentAdapter.class);
 		final List<Comment> comments = AndroidMock.createMock(List.class);
-		final View field = AndroidMock.createMock(View.class, getContext());
+		final CommentEditField field = AndroidMock.createMock(CommentEditField.class, getContext());
 		final SocializeHeader header = AndroidMock.createMock(SocializeHeader.class, getContext());
 		final LoadingListView content = AndroidMock.createMock(LoadingListView.class, getContext());
 		final Entity entity = AndroidMock.createMock(Entity.class);
@@ -215,8 +216,8 @@ public class CommentListViewTest extends SocializeActivityTest {
 		SocializeException.class})
 	public void testPostCommentFail() {
 		
-		final String title = "Posting comment";
-		final String message = "Please wait...";
+		final String title = "socialize_comment_dialog";
+		final String message = "socialize_please_wait";
 		final String comment = "foobar";
 		
 		final String entityKey = "foobar_entity_key";
@@ -349,7 +350,7 @@ public class CommentListViewTest extends SocializeActivityTest {
 		};
 		
 		PublicCommentListView view = new PublicCommentListView(getContext()) {
-			@Override
+//			@Override
 			protected void preLoadImages(List<Comment> comments) {
 				// Do nothing.
 			}
@@ -418,7 +419,7 @@ public class CommentListViewTest extends SocializeActivityTest {
 		};
 		
 		PublicCommentListView view = new PublicCommentListView(getContext()) {
-			@Override
+//			@Override
 			protected void preLoadImages(List<Comment> comments) {
 				// Do nothing.
 			}
@@ -635,7 +636,7 @@ public class CommentListViewTest extends SocializeActivityTest {
 		}
 
 		@Override
-		public void setCommentEntryField(View field) {
+		protected void setCommentEntryField(CommentEditField field) {
 			super.setCommentEntryField(field);
 		}
 
