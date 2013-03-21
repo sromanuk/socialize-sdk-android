@@ -31,6 +31,13 @@ import android.graphics.BitmapFactory;
 import android.graphics.Matrix;
 import android.net.Uri;
 import android.provider.MediaStore;
+import android.util.Log;
+import org.apache.http.HttpEntity;
+import org.apache.http.HttpResponse;
+import org.apache.http.HttpStatus;
+import org.apache.http.client.methods.HttpGet;
+import org.apache.http.impl.client.DefaultHttpClient;
+
 import java.net.HttpURLConnection;
 import java.io.InputStream;
 import java.net.URL;
@@ -61,10 +68,54 @@ public class ImageUtils {
 		return stream.toByteArray();
 	}
 
+  private InputStream retrieveStream (Uri url) {
+    String path = url == null ? null : url.getPath();
+    if (path == null) {
+      Log.w(getClass().getSimpleName(), "Error in received url: it's null => " + url);
+      return null;
+    } else {
+      Log.w(getClass().getSimpleName(), "Path to the picture received => " + path);
+    }
+
+    DefaultHttpClient client = new DefaultHttpClient();
+    HttpGet httpRequest = new HttpGet(path);
+
+    try {
+      HttpResponse httpResponse = client.execute(httpRequest);
+      final int statusCode = httpResponse.getStatusLine().getStatusCode();
+
+      if (statusCode != HttpStatus.SC_OK) {
+        Log.w(getClass().getSimpleName(), "Error => " + statusCode + " => for URL " + url);
+        return null;
+      }
+
+      HttpEntity httpEntity = httpResponse.getEntity();
+      return httpEntity.getContent();
+
+    } catch (IOException e) {
+      httpRequest.abort();
+      Log.w(getClass().getSimpleName(), "Error for URL =>" + url, e);
+    }
+
+    return null;
+  }
+
+  private InputStream getStreamToUri(Context context, Uri photoUri) {
+    InputStream is = null;
+    try {
+      is = context.getContentResolver().openInputStream(photoUri);
+    } catch (Exception ex) { // URI is not local but the web
+      is = retrieveStream(photoUri);
+    }
+
+    return is;
+  }
+
 	public byte[] scaleImage(Context context, Uri photoUri) throws IOException {
-		InputStream is = context.getContentResolver().openInputStream(photoUri);
+
 		BitmapFactory.Options dbo = new BitmapFactory.Options();
 		dbo.inJustDecodeBounds = true;
+    InputStream is = getStreamToUri(context, photoUri);
 		BitmapFactory.decodeStream(is, null, dbo);
 		is.close();
 
@@ -81,7 +132,7 @@ public class ImageUtils {
 		}
 
 		Bitmap bitmap;
-		is = context.getContentResolver().openInputStream(photoUri);
+		is = getStreamToUri(context, photoUri);
 		if (rotatedWidth > MAX_IMAGE_DIMENSION || rotatedHeight > MAX_IMAGE_DIMENSION) {
 			float widthRatio = ((float) rotatedWidth) / ((float) MAX_IMAGE_DIMENSION);
 			float heightRatio = ((float) rotatedHeight) / ((float) MAX_IMAGE_DIMENSION);
@@ -108,7 +159,7 @@ public class ImageUtils {
 			bitmap = Bitmap.createBitmap(bitmap, 0, 0, bitmap.getWidth(), bitmap.getHeight(), matrix, true);
 		}
 
-		String type = context.getContentResolver().getType(photoUri);
+		String type = "image/png";
 		ByteArrayOutputStream baos = new ByteArrayOutputStream();
 		if (type.equals("image/png")) {
 			bitmap.compress(Bitmap.CompressFormat.PNG, 100, baos);
@@ -124,6 +175,10 @@ public class ImageUtils {
 	public int getOrientation(Context context, Uri photoUri) {
 		/* it's on the external media. */
 		Cursor cursor = context.getContentResolver().query(photoUri, new String[] { MediaStore.Images.ImageColumns.ORIENTATION }, null, null, null);
+
+    if (cursor == null) {
+      return 0;
+    }
 
 		if (cursor.getCount() != 1) {
 			return -1;

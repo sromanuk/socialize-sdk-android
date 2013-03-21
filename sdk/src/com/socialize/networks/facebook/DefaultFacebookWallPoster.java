@@ -149,28 +149,28 @@ public class DefaultFacebookWallPoster implements FacebookWallPoster {
     		prop.load(parent.getResources().getAssets().open("socialize.properties"));
     		linkName = prop.getProperty(FACEBOOK_LINK_NAME);
 
-    		if (StringUtils.isEmpty(message)) { // it is a like post.
+        if (StringUtils.isEmpty(message)) { // it is a like post.
 
-	 			if (prop.getProperty(FACEBOOK_LIKE_MESSAGE) != null) {
-	            	message = prop.getProperty(FACEBOOK_LIKE_MESSAGE);
-	            	if (effect_name != null) {
-			    		message = message.replace("%EFFECT_NAME%", effect_name);
-			    		linkName = linkName.replace("%EFFECT_NAME%", effect_name);
-			    	}
-	        	}
+          if (prop.getProperty(FACEBOOK_LIKE_MESSAGE) != null) {
+            message = prop.getProperty(FACEBOOK_LIKE_MESSAGE);
+            if (effect_name != null) {
+              message = message.replace("%EFFECT_NAME%", effect_name);
+              linkName = linkName.replace("%EFFECT_NAME%", effect_name);
+            }
+          }
 
-	        } else { // comment post
+        } else { // comment post
 
-	        	if (prop.getProperty(FACEBOOK_COMMENT_MESSAGE) != null) {
-	        		message = prop.getProperty(FACEBOOK_COMMENT_MESSAGE) + "\n" + message;
-	        		message = message.replace("%EFFECT_NAME%", effect_name);
+          if (prop.getProperty(FACEBOOK_COMMENT_MESSAGE) != null) {
+            message = prop.getProperty(FACEBOOK_COMMENT_MESSAGE) + "\n" + message;
+            message = message.replace("%EFFECT_NAME%", effect_name);
 
-	        		// linkName = linkName.replace("%EFFECT_NAME%", effect_name);
-	        		linkName = message;
-	        	}
-	        }
+            // linkName = linkName.replace("%EFFECT_NAME%", effect_name);
+            linkName = message;
+          }
+        }
 
-	        description = prop.getProperty(FACEBOOK_LINK_DESCRIPTION);
+        description = prop.getProperty(FACEBOOK_LINK_DESCRIPTION);
     	} catch (IOException ex) {
     		ex.printStackTrace();
         } catch (NullPointerException ex) {
@@ -188,8 +188,6 @@ public class DefaultFacebookWallPoster implements FacebookWallPoster {
 			if (description != null) {
 				params.put("description", description);
 			}
-
-			Log.v("DefaultFacebookWallPoster", params.toString());
 
 			if (previewURL != null) {
 				params.put("picture", previewURL);
@@ -214,14 +212,16 @@ public class DefaultFacebookWallPoster implements FacebookWallPoster {
 			} else {
 				Log.v("DefaultFacebookWallPoster", "pictureURL == null and previewURL == null");
 			}
-			
+
+      Log.v("DefaultFacebookWallPoster", params.toString());
+
 			DefaultPostData postData = new DefaultPostData();
 			postData.setPostValues(params);
 			postData.setPropagationInfo(propInfo);			
 			
 //			post(parent, appId, listener, postData);
       Uri.Builder builder = new Uri.Builder();
-      builder = builder.path(link);
+      builder = builder.path(previewURL != null ? previewURL : pictureURL);
       postPhoto(parent, link, description, builder.build(), listener);
 		}
 		else {
